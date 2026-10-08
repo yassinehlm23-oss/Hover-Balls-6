@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Shadow of the Glitch</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      margin: 0;
+      padding: 0;
+    }
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #050508;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    #game-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #000;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      max-width: 900px;
+      max-height: 500px;
+      aspect-ratio: 16 / 9;
+      background-color: #0b0c10;
+      box-shadow: 0 0 30px rgba(0, 255, 204, 0.2);
+    }
+    /* واجهة المستخدم العلوية */
+    #ui-layer {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      right: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #fff;
+      font-size: 14px;
+      font-weight: bold;
+      pointer-events: none;
+      text-shadow: 0 0 5px #000;
+    }
+    .badge {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 6px 12px;
+      border-radius: 8px;
+      backdrop-filter: blur(4px);
+    }
+    /* أدوات التحكم باللمس */
+    #touch-controls {
+      position: absolute;
+      bottom: 15px;
+      left: 0;
+      right: 0;
+      height: 130px;
+      display: flex;
+      justify-content: space-between;
+      padding: 0 25px;
+      pointer-events: none;
+    }
+    .dpad, .action-pad {
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+      pointer-events: auto;
+    }
+    .btn {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.15);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      color: #fff;
+      font-size: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+      touch-action: manipulation;
+    }
+    .btn:active {
+      transform: scale(0.92);
+      background: rgba(255, 255, 255, 0.35);
+    }
+    .btn-shift {
+      background: rgba(255, 0, 128, 0.3);
+      border-color: #ff007f;
+      color: #fff;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .btn-jump {
+      background: rgba(0, 240, 255, 0.3);
+      border-color: #00f0ff;
+    }
+    /* شاشة النهاية والقائمة */
+    #overlay-screen {
+      position: absolute;
+      inset: 0;
+      background: rgba(5, 5, 10, 0.85);
+      backdrop-filter: blur(10px);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: #fff;
+      z-index: 100;
+      transition: opacity 0.3s ease;
+    }
+    #overlay-screen.hidden {
+      display: none;
+    }
+    #overlay-screen h1 {
+      font-size: 32px;
+      margin-bottom: 8px;
+      color: #00f0ff;
+      text-shadow: 0 0 15px #00f0ff;
+    }
+    #overlay-screen p {
+      font-size: 14px;
+      margin-bottom: 25px;
+      color: #cbd5e1;
+      text-align: center;
+      max-width: 80%;
+      line-height: 1.6;
+    }
+    #start-btn {
+      padding: 12px 36px;
+      font-size: 16px;
+      font-weight: bold;
+      color: #050508;
+      background: #00f0ff;
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+      box-shadow: 0 0 20px rgba(0, 240, 255, 0.6);
+      transition: transform 0.1s ease;
+    }
+    #start-btn:active {
+      transform: scale(0.95);
+    }
+  </style>
+</head>
+<body>
+
+<div id="game-container">
+  <canvas id="gameCanvas" width="960" height="540"></canvas>
+
+  <div id="ui-layer">
+    <div class="badge" id="level-display">المرحلة: 1</div>
+    <div class="badge" id="mode-display">الوضع: العالم الواقعي</div>
+    <div class="badge" id="timer-display">الوقت: 00:00</div>
+  </div>
+
+  <div id="touch-controls">
+    <div class="dpad">
+      <div class="btn" id="btn-left">◀</div>
+      <div class="btn" id="btn-right">▶</div>
+    </div>
+    <div class="action-pad">
+      <div class="btn btn-shift" id="btn-shift">SHIFT</div>
+      <div class="btn btn-jump" id="btn-jump">▲</div>
+    </div>
+  </div>
+
+  <div id="overlay-screen">
+    <h1 id="screen-title">SHADOW OF THE GLITCH</h1>
+    <p id="screen-desc">بدّل بين بُعد الواقع وبُعد السايبر لتجاوز العوائق والوصول للبوابة قبل نفاد الوقت.</p>
+    <button id="start-btn">ابدأ اللعب</button>
+  </div>
+</div>
+
+<script>
+// --- نظام الصوت المولد (Web Audio API) ---
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playSound(type) {
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  const t = audioCtx.currentTime;
+
+  if (type === 'jump') {
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(150, t);
+    osc.frequency.exponentialRampToValueAtTime(400, t + 0.15);
+    gain.gain.setValueAtTime(0.15, t);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
+    osc.start(t);
+    osc.stop(t + 0.15);
+  } else if (type === 'shift') {
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(600, t);
+    osc.frequency.exponentialRampToValueAtTime(120, t + 0.2);
+    gain.gain.setValueAtTime(0.2, t);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
+    osc.start(t);
+    osc.stop(t + 0.2);
+  } else if (type === 'item') {
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(440, t);
+    osc.frequency.setValueAtTime(880, t + 0.08);
+    gain.gain.setValueAtTime(0.2, t);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + 0.25);
+    osc.start(t);
+    osc.stop(t + 0.25);
+  } else if (type === 'death') {
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(180, t);
+    osc.frequency.exponentialRampToValueAtTime(40, t + 0.3);
+    gain.gain.setValueAtTime(0.3, t);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + 0.3);
+    osc.start(t);
+    osc.stop(t + 0.3);
+  }
+}
+
+// --- إعدادات المحرك والعرض ---
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const W = 960, H = 540;
+
+const state = {
+  currentLevel: 0,
+  dimension: 'REAL', // 'REAL' أو 'GLITCH'
+  shake: 0,
+  timeStart: 0,
+  elapsedSeconds: 0,
+  isPlaying: false,
+  shardsCollected: 0,
+  totalShards: 0
+};
+
+// --- تعريف المستويات ---
+// d: 'BOTH' (مشترك), 'REAL' (واقع فقط), 'GLITCH' (جليتش فقط)
+const levels = [
+  {
+    spawn: { x: 50, y: 400 },
+    exit: { x: 880, y: 400 },
+    platforms: [
+      { x: 0, y: 480, w: 960, h: 60, d: 'BOTH' },
+      { x: 200, y: 390, w: 120, h: 20, d: 'REAL' },
+      { x: 380, y: 310, w: 140, h: 20, d: 'GLITCH' },
+      { x: 580, y: 240, w: 120, h: 20, d: 'REAL' },
+      { x: 740, y: 340, w: 120, h: 20, d: 'GLITCH' }
+    ],
+    hazards: [
+      { x: 340, y: 460, w: 80, h: 20, d: 'REAL' },
+      { x: 540, y: 460, w: 100, h: 20, d: 'GLITCH' }
+    ],
+    shards: [
+      { x: 440, y: 260, collected: false },
+      { x: 630, y: 190, collected: false }
+    ]
+  },
+  {
+    spawn: { x: 50, y: 400 },
+    exit: { x: 900, y: 120 },
+    platforms: [
+      { x: 0, y: 480, w: 250, h: 60, d: 'BOTH' },
+      { x: 320, y: 420, w: 100, h: 20, d: 'GLITCH' },
+      { x: 480, y: 340, w: 120, h: 20, d: 'REAL' },
+      { x: 320, y: 260, w: 100, h: 20, d: 'GLITCH' },
+      { x: 500, y: 190, w: 140, h: 20, d: 'REAL' },
+      { x: 720, y: 160, w: 240, h: 20, d: 'BOTH' }
+    ],
+    hazards: [
+      { x: 250, y: 520, w: 710, h: 20, d: 'BOTH' },
+      { x: 490, y: 320, w: 30, h: 20, d: 'REAL' }
+    ],
+    shards: [
+      { x: 360, y: 370, collected: false },
+      { x: 550, y: 140, collected: false }
+    ]
+  },
+  {
+    spawn: { x: 50, y: 120 },
+    exit: { x: 880, y: 440 },
+    platforms: [
+      { x: 20, y: 180, w: 120, h: 20, d: 'BOTH' },
+      { x: 200, y: 220, w: 90, h: 20, d: 'REAL' },
+      { x: 340, y: 260, w: 90, h: 20, d: 'GLITCH' },
+      { x: 480, y: 300, w: 90, h: 20, d: 'REAL' },
+      { x: 620, y: 340, w: 90, h: 20, d: 'GLITCH' },
+      { x: 760, y: 480, w: 200, h: 60, d: 'BOTH' },
+      { x: 0, y: 520, w: 960, h: 20, d: 'GLITCH' }
+    ],
+    hazards: [
+      { x: 220, y: 200, w: 30, h: 20, d: 'REAL' },
+      { x: 500, y: 280, w: 30, h: 20, d: 'REAL' },
+      { x: 0, y: 500, w: 760, h: 40, d: 'BOTH' }
+    ],
+    shards: [
+      { x: 370, y: 210, collected: false },
+      { x: 650, y: 290, collected: false }
+    ]
+  }
+];
+
+// ---
