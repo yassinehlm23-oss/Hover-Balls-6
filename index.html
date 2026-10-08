@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Shadow of the Glitch: Cyber Legacy</title>
+  <title>Shadow of the Glitch: Cyber Legacy (Global Edition)</title>
   <style>
     * {
       box-sizing: border-box;
@@ -43,8 +43,8 @@
       z-index: 100;
     }
     .hud-glass {
-      background: rgba(8, 12, 24, 0.7);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(8, 12, 24, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.14);
       padding: 7px 16px;
       border-radius: 20px;
       color: #fff;
@@ -54,13 +54,17 @@
       box-shadow: 0 8px 32px rgba(0,0,0,0.6);
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
     }
     #dim-badge {
       color: #00f0ff;
       border-color: rgba(0, 240, 255, 0.4);
       letter-spacing: 1px;
       transition: all 0.25s ease;
+    }
+    .badge-danger {
+      color: #f43f5e !important;
+      border-color: rgba(244, 63, 94, 0.4) !important;
     }
 
     /* أزرار التحكم اللمسية السينمائية */
@@ -147,9 +151,18 @@
     #menu-overlay p {
       font-size: 14px;
       color: #94a3b8;
-      max-width: 400px;
+      max-width: 440px;
       line-height: 1.8;
       margin-bottom: 32px;
+      white-space: pre-line;
+    }
+    .rank-badge {
+      display: inline-block;
+      font-size: 54px;
+      font-weight: 900;
+      color: #f59e0b;
+      text-shadow: 0 0 30px rgba(245, 158, 11, 0.8);
+      margin-bottom: 12px;
     }
     .glow-btn {
       padding: 16px 54px;
@@ -172,7 +185,7 @@
 <div id="hud">
   <div class="hud-glass" id="lvl-badge">المستوى: 1 / 3</div>
   <div class="hud-glass" id="dim-badge">✦ الواقع [REALITY]</div>
-  <div class="hud-glass" id="stats-badge">💎 0/0 | ⏱️ 00:00.00</div>
+  <div class="hud-glass" id="stats-badge">💀 0 | 💎 0/0 | ⏱️ 00:00.00</div>
 </div>
 
 <div id="touch-bar">
@@ -188,9 +201,13 @@
 </div>
 
 <div id="menu-overlay">
+  <div id="rank-box"></div>
   <h1 id="m-title">SHADOW OF THE GLITCH</h1>
   <p id="m-desc">
-    تجربة منصات متقدمة: استخدم <b>SHIFT</b> للتبديل بين العالمين، <b>DASH</b> لاختراق الحواجز والقضاء على الحراس، وقفز الجدران للهروب من الفجوة.
+    تجربة منصات تنافسية عالمية:
+    استخدم <b>SHIFT</b> للتبديل بين الأبعاد، <b>DASH</b> للاندفاع واختراق الحراس،
+    والتصق بالجدران للقيام بـ <b>Wall Jump</b>.
+    احذر من <b>جدار الليزر الملاحق</b> الذي لا يرحم!
   </p>
   <button class="glow-btn" id="m-action">دخول العالم</button>
 </div>
@@ -200,7 +217,6 @@
 // 1. محرك الصوتيات الإجرائي (Procedural Synth Engine)
 // ==========================================
 let actx = null;
-let bgmOscs = [];
 let bgmStep = 0;
 let bgmInterval = null;
 
@@ -225,6 +241,13 @@ function fx(type) {
     g.gain.setValueAtTime(0.18, t);
     g.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
     o.start(t); o.stop(t + 0.12);
+  } else if (type === 'walljump') {
+    o.type = 'sine';
+    o.frequency.setValueAtTime(260, t);
+    o.frequency.exponentialRampToValueAtTime(680, t + 0.14);
+    g.gain.setValueAtTime(0.22, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+    o.start(t); o.stop(t + 0.14);
   } else if (type === 'doublejump') {
     o.type = 'sine';
     o.frequency.setValueAtTime(350, t);
@@ -234,25 +257,25 @@ function fx(type) {
     o.start(t); o.stop(t + 0.15);
   } else if (type === 'dash') {
     o.type = 'sawtooth';
-    o.frequency.setValueAtTime(300, t);
-    o.frequency.exponentialRampToValueAtTime(60, t + 0.2);
+    o.frequency.setValueAtTime(320, t);
+    o.frequency.exponentialRampToValueAtTime(60, t + 0.18);
     g.gain.setValueAtTime(0.25, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
-    o.start(t); o.stop(t + 0.2);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+    o.start(t); o.stop(t + 0.18);
   } else if (type === 'shift') {
     o.type = 'sawtooth';
     o.frequency.setValueAtTime(800, t);
-    o.frequency.exponentialRampToValueAtTime(100, t + 0.24);
+    o.frequency.exponentialRampToValueAtTime(100, t + 0.22);
     g.gain.setValueAtTime(0.28, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.24);
-    o.start(t); o.stop(t + 0.24);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+    o.start(t); o.stop(t + 0.22);
   } else if (type === 'shard') {
     o.type = 'sine';
-    o.frequency.setValueAtTime(659.25, t); // E5
-    o.frequency.setValueAtTime(987.77, t + 0.08); // B5
+    o.frequency.setValueAtTime(659.25, t);
+    o.frequency.setValueAtTime(987.77, t + 0.08);
     g.gain.setValueAtTime(0.25, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.32);
-    o.start(t); o.stop(t + 0.32);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+    o.start(t); o.stop(t + 0.3);
   } else if (type === 'hit') {
     o.type = 'square';
     o.frequency.setValueAtTime(200, t);
@@ -260,13 +283,20 @@ function fx(type) {
     g.gain.setValueAtTime(0.3, t);
     g.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
     o.start(t); o.stop(t + 0.2);
+  } else if (type === 'slowmo') {
+    o.type = 'sine';
+    o.frequency.setValueAtTime(120, t);
+    o.frequency.exponentialRampToValueAtTime(45, t + 0.25);
+    g.gain.setValueAtTime(0.16, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+    o.start(t); o.stop(t + 0.25);
   } else if (type === 'death') {
     o.type = 'sawtooth';
     o.frequency.setValueAtTime(160, t);
-    o.frequency.exponentialRampToValueAtTime(20, t + 0.4);
+    o.frequency.exponentialRampToValueAtTime(20, t + 0.35);
     g.gain.setValueAtTime(0.4, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
-    o.start(t); o.stop(t + 0.4);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+    o.start(t); o.stop(t + 0.35);
   }
 }
 
@@ -301,7 +331,7 @@ function haptic(ms = 25) {
 }
 
 // ==========================================
-// 2. إعداد المحرك والكانفاس والواجهة
+// 2. إعداد المحرك والكانفاس والبيانات
 // ==========================================
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
@@ -325,7 +355,11 @@ const sys = {
   chromatic: 0,
   timeStart: 0,
   shards: 0,
-  totalShards: 0
+  totalShards: 0,
+  deaths: 0,
+  flash: 0,
+  timeScale: 1.0,
+  slowMoTimer: 0
 };
 
 const cam = {
@@ -342,6 +376,7 @@ const levels = [
     w: 2600, h: 900,
     spawn: { x: 100, y: 720 },
     exit: { x: 2440, y: 380 },
+    chaserSpeed: 1.15,
     platforms: [
       { x: 0, y: 800, w: 900, h: 100, d: 'BOTH' },
       { x: 1050, y: 800, w: 1550, h: 100, d: 'BOTH' },
@@ -375,6 +410,7 @@ const levels = [
     w: 3000, h: 950,
     spawn: { x: 100, y: 800 },
     exit: { x: 2850, y: 320 },
+    chaserSpeed: 1.35,
     platforms: [
       { x: 0, y: 870, w: 450, h: 80, d: 'BOTH' },
       { x: 500, y: 760, w: 140, h: 24, d: 'REAL' },
@@ -410,6 +446,7 @@ const levels = [
     w: 2800, h: 1050,
     spawn: { x: 100, y: 240 },
     exit: { x: 2620, y: 920 },
+    chaserSpeed: 1.55,
     platforms: [
       { x: 30, y: 320, w: 220, h: 26, d: 'BOTH' },
       { x: 340, y: 400, w: 140, h: 24, d: 'REAL' },
@@ -444,7 +481,7 @@ const levels = [
 ];
 
 // ==========================================
-// 4. البطل ونظام التحريك الإجرائي والوشاح
+// 4. البطل، الشبح الملاحق، والفيزياء
 // ==========================================
 const hero = {
   x: 0, y: 0,
@@ -453,6 +490,8 @@ const hero = {
   speed: 5.6,
   jumpForce: -12.4,
   isGrounded: false,
+  isWallSliding: false,
+  wallDir: 0, // -1 يسار، 1 يمين
   jumps: 2,
   coyote: 0,
   buffer: 0,
@@ -461,14 +500,23 @@ const hero = {
   dashTime: 0,
   dashDir: 1,
   facing: 1,
-  // إجرائيات الرسوم (Squash & Stretch)
   scaleX: 1, scaleY: 1,
-  // وشاح فيزيائي إجرائي
   scarf: [
     {x:0, y:0}, {x:0, y:0}, {x:0, y:0}, {x:0, y:0}, {x:0, y:0}
   ],
   ghosts: []
 };
+
+// جدار الموت الرقمي الملاحق
+const chaser = {
+  x: -400,
+  speed: 1.2
+};
+
+// نظام طيف الموت السابق (Death Echo)
+let currentRunTrail = [];
+let echoTrail = [];
+let echoIndex = 0;
 
 let fxParticles = [];
 function addFx(x, y, color, count = 12, mul = 1) {
@@ -485,7 +533,7 @@ function addFx(x, y, color, count = 12, mul = 1) {
 }
 
 // ==========================================
-// 5. نظام الإدخال المتعدد المتزامن
+// 5. نظام الإدخال
 // ==========================================
 const keys = { left: false, right: false };
 
@@ -544,7 +592,8 @@ function cmdDash() {
   hero.vy = 0;
   fx('dash');
   haptic(45);
-  sys.shake = 9;
+  sys.shake = 10;
+  sys.flash = 0.35; // وميض أبيض سينمائي
   hero.scaleX = 1.45;
   hero.scaleY = 0.65;
   addFx(hero.x + hero.w/2, hero.y + hero.h/2, '#f59e0b', 16);
@@ -574,7 +623,7 @@ function cmdShift() {
 }
 
 // ==========================================
-// 6. المحرك الفيزيائي ومنطق الذكاء الاصطناعي
+// 6. المحرك الفيزيائي المتطور
 // ==========================================
 function startLevel(idx) {
   sys.level = idx;
@@ -592,7 +641,15 @@ function startLevel(idx) {
   lvl.shards.forEach(s => s.collected = false);
   if (lvl.enemies) lvl.enemies.forEach(e => e.alive = true);
 
-  // تهيئة الوشاح
+  // إعداد الجدار الملاحق
+  chaser.x = lvl.spawn.x - 360;
+  chaser.speed = lvl.chaserSpeed || 1.2;
+
+  // حفظ مسار الشبح وتفريغ الذاكرة المؤقتة
+  echoTrail = [...currentRunTrail];
+  currentRunTrail = [];
+  echoIndex = 0;
+
   for (let i = 0; i < hero.scarf.length; i++) {
     hero.scarf[i].x = hero.x;
     hero.scarf[i].y = hero.y + 10;
@@ -612,83 +669,124 @@ function killPlayer() {
   fx('death');
   haptic(70);
   sys.shake = 18;
-  sys.chromatic = 20;
-  addFx(hero.x + hero.w/2, hero.y + hero.h/2, '#ef4444', 35, 1.5);
+  sys.chromatic = 22;
+  sys.deaths++;
+  addFx(hero.x + hero.w/2, hero.y + hero.h/2, '#ef4444', 35, 1.6);
+
   const lvl = levels[sys.level];
+
+  // تحويل المسار الحالي لطيف موتى سابق
+  echoTrail = [...currentRunTrail];
+  currentRunTrail = [];
+  echoIndex = 0;
+
+  // إعادة فورية للبداية دون انقطاع
   hero.x = lvl.spawn.x;
   hero.y = lvl.spawn.y;
   hero.vx = 0;
   hero.vy = 0;
   hero.isDashing = false;
   hero.canDash = true;
+  chaser.x = lvl.spawn.x - 360;
 }
 
 function updatePhysics() {
   const lvl = levels[sys.level];
 
-  // تحديث المنصات المتحركة
+  // إدارة التباطؤ الحرج (Bullet Time / SlowMo)
+  if (sys.slowMoTimer > 0) {
+    sys.slowMoTimer--;
+    sys.timeScale = 0.5;
+  } else {
+    sys.timeScale = 1.0;
+  }
+
+  // تسجيل مسار اللاعب كل 3 إطارات للشبح
+  if (Math.floor(performance.now() / 16) % 3 === 0) {
+    currentRunTrail.push({ x: hero.x, y: hero.y, dim: sys.dimension });
+  }
+
+  // تحريك الجدار الملاحق المتسارع
+  chaser.x += chaser.speed * sys.timeScale;
+  if (hero.x < chaser.x) {
+    killPlayer();
+    return;
+  }
+
+  // تحريك المنصات
   if (lvl.moving) {
     lvl.moving.forEach(m => {
-      m.x += m.spd * m.dir;
+      m.x += (m.spd * m.dir) * sys.timeScale;
       if (m.x > m.maxX) { m.x = m.maxX; m.dir = -1; }
       if (m.x < m.minX) { m.x = m.minX; m.dir = 1; }
     });
   }
 
-  // تحديث الأعداء (AI Patrol & Collision)
+  // منطق الأعداء مع كشف الاقتراب الحرج (Near-Miss)
   if (lvl.enemies) {
     lvl.enemies.forEach(en => {
       if (!en.alive) return;
-      en.x += en.spd * en.dir;
+      en.x += (en.spd * en.dir) * sys.timeScale;
       if (en.x > en.maxX) { en.x = en.maxX; en.dir = -1; }
       if (en.x < en.minX) { en.x = en.minX; en.dir = 1; }
 
-      // تصادم مع اللاعب
+      // تصادم مباشر
       if (isOverlap(hero, en)) {
-        // إذا كان اللاعب يسقط من فوقه أو يقوم بـ Dash، يقضي على العدو
         if (hero.vy > 2 || hero.isDashing) {
           en.alive = false;
           fx('hit');
           haptic(40);
           sys.shake = 10;
           addFx(en.x + en.w/2, en.y + en.h/2, '#00f0ff', 22);
-          hero.vy = -8.5; // ارتداد هوائي
+          hero.vy = -8.5;
           hero.canDash = true;
         } else {
           killPlayer();
+        }
+      } else {
+        // ميكانيكا الهروب الحرج من العدو
+        const dist = Math.hypot((hero.x + hero.w/2) - (en.x + en.w/2), (hero.y + hero.h/2) - (en.y + en.h/2));
+        if (dist < 42 && sys.slowMoTimer <= 0) {
+          sys.slowMoTimer = 14;
+          fx('slowmo');
+          haptic(15);
         }
       }
     });
   }
 
-  // فيزياء الـ Dash
+  // فيزياء الاندفاع Dash
   if (hero.isDashing) {
-    hero.vx = hero.dashDir * 15;
+    hero.vx = hero.dashDir * 15 * sys.timeScale;
     hero.vy = 0;
     hero.dashTime--;
     hero.ghosts.push({ x: hero.x, y: hero.y, alpha: 0.7, color: '#f59e0b' });
     if (hero.dashTime <= 0) hero.isDashing = false;
   } else {
-    // حركة طبيعية
+    // حركة أفقية
     if (keys.left) {
-      hero.vx = -hero.speed;
+      hero.vx = -hero.speed * sys.timeScale;
       hero.facing = -1;
     } else if (keys.right) {
-      hero.vx = hero.speed;
+      hero.vx = hero.speed * sys.timeScale;
       hero.facing = 1;
     } else {
       hero.vx *= 0.72;
     }
 
-    hero.vy += 0.58;
-    if (hero.vy > 13) hero.vy = 13;
+    // تطبيق الجاذبية مع مراعاة الانزلاق على الجدران (Wall Sliding)
+    if (hero.isWallSliding && hero.vy > 0) {
+      hero.vy += 0.16 * sys.timeScale; // انزلاق بطيء
+      if (hero.vy > 2.8) hero.vy = 2.8;
+    } else {
+      hero.vy += 0.58 * sys.timeScale;
+      if (hero.vy > 13) hero.vy = 13;
+    }
   }
 
-  // عودة الانضغاط لحجمه الطبيعي تدريجياً
   hero.scaleX += (1 - hero.scaleX) * 0.15;
   hero.scaleY += (1 - hero.scaleY) * 0.15;
 
-  // Coyote & Buffer
   if (hero.isGrounded) {
     hero.coyote = 6;
     hero.jumps = 2;
@@ -697,8 +795,21 @@ function updatePhysics() {
     if (hero.coyote > 0) hero.coyote--;
   }
 
+  // معالجة القفز وقفز الجدران المتقدم
   if (hero.buffer > 0) {
-    if (hero.coyote > 0) {
+    if (hero.isWallSliding) {
+      // Wall Jump
+      hero.vy = hero.jumpForce * 0.94;
+      hero.vx = -hero.wallDir * (hero.speed * 1.35);
+      hero.facing = -hero.wallDir;
+      hero.isWallSliding = false;
+      hero.buffer = 0;
+      hero.canDash = true;
+      hero.scaleX = 0.75;
+      hero.scaleY = 1.35;
+      fx('walljump');
+      addFx(hero.x + (hero.wallDir === 1 ? hero.w : 0), hero.y + hero.h/2, '#00f0ff', 12);
+    } else if (hero.coyote > 0) {
       hero.vy = hero.jumpForce;
       hero.isGrounded = false;
       hero.coyote = 0;
@@ -719,22 +830,35 @@ function updatePhysics() {
     hero.buffer--;
   }
 
-  // الحركة الأفقية وتصادم المنصات
+  // تصادم المنصات الأفقي ورصد الجدران للانزلاق
   hero.x += hero.vx;
   const solids = [...lvl.platforms, ...(lvl.moving || [])];
+  hero.isWallSliding = false;
+  hero.wallDir = 0;
 
   solids.forEach(p => {
     if (p.d === 'BOTH' || p.d === sys.dimension) {
       if (isOverlap(hero, p)) {
-        if (hero.vx > 0) hero.x = p.x - hero.w;
-        else if (hero.vx < 0) hero.x = p.x + p.w;
+        if (hero.vx > 0) {
+          hero.x = p.x - hero.w;
+          if (!hero.isGrounded && hero.vy > 0) {
+            hero.isWallSliding = true;
+            hero.wallDir = 1;
+          }
+        } else if (hero.vx < 0) {
+          hero.x = p.x + p.w;
+          if (!hero.isGrounded && hero.vy > 0) {
+            hero.isWallSliding = true;
+            hero.wallDir = -1;
+          }
+        }
         hero.vx = 0;
         hero.isDashing = false;
       }
     }
   });
 
-  // الحركة الرأسية وتصادم المنصات
+  // الحركة والتصادم الرأسي
   hero.y += hero.vy;
   const wasGrounded = hero.isGrounded;
   hero.isGrounded = false;
@@ -770,7 +894,7 @@ function updatePhysics() {
     cur.y += (prev.y - cur.y) * 0.45 + 0.8;
   }
 
-  // فحص الأفخاخ والسقوط
+  // فحص الأفخاخ والموت
   lvl.hazards.forEach(h => {
     if (h.d === 'BOTH' || h.d === sys.dimension) {
       if (isOverlap(hero, h)) killPlayer();
@@ -807,21 +931,20 @@ function updatePhysics() {
     if (hero.ghosts[i].alpha <= 0) hero.ghosts.splice(i, 1);
   }
 
-  // كاميرا متحركة ناعمة
+  // تحديث الكاميرا
   cam.targetX = hero.x - W / 2 + hero.w / 2;
   cam.targetY = hero.y - H / 2 + hero.h / 2;
   cam.x += (cam.targetX - cam.x) * cam.k;
   cam.y += (cam.targetY - cam.y) * cam.k;
-
   cam.x = Math.max(0, Math.min(cam.x, lvl.w - W));
   cam.y = Math.max(0, Math.min(cam.y, lvl.h - H));
 
-  // تحديث العداد
+  // تحديث الـ HUD
   const elapsed = performance.now() - sys.timeStart;
   const m = String(Math.floor(elapsed / 60000)).padStart(2, '0');
   const s = String(Math.floor((elapsed % 60000) / 1000)).padStart(2, '0');
   const ms = String(Math.floor((elapsed % 1000) / 10)).padStart(2, '0');
-  document.getElementById('stats-badge').innerText = `💎 ${sys.shards}/${sys.totalShards} | ⏱️ ${m}:${s}.${ms}`;
+  document.getElementById('stats-badge').innerText = `💀 ${sys.deaths} | 💎 ${sys.shards}/${sys.totalShards} | ⏱️ ${m}:${s}.${ms}`;
 }
 
 function isOverlap(a, b) {
@@ -832,12 +955,11 @@ function isOverlap(a, b) {
 }
 
 // ==========================================
-// 7. محرك الرسم والإضاءة والظلال الحجمية
+// 7. محرك الرسم، الإضاءة، وشبح الموت السابق
 // ==========================================
 function render() {
   ctx.save();
 
-  // تأثير اهتزاز الشاشة والـ Glitch اللوني
   let sx = 0, sy = 0;
   if (sys.shake > 0) {
     sx = (Math.random() - 0.5) * sys.shake;
@@ -851,7 +973,7 @@ function render() {
 
   const lvl = levels[sys.level];
 
-  // خلفية الغرفة ذات البعدين
+  // الخلفية
   if (sys.dimension === 'REAL') {
     ctx.fillStyle = '#06070d';
     ctx.fillRect(cam.x, cam.y, W, H);
@@ -861,6 +983,35 @@ function render() {
     ctx.fillRect(cam.x, cam.y, W, H);
     drawGrid('#2a0733', 64, lvl.w, lvl.h);
   }
+
+  // رسم طيف المحاولة السابقة (Echo Ghost)
+  if (echoTrail.length > 0 && echoIndex < echoTrail.length) {
+    const e = echoTrail[echoIndex];
+    ctx.save();
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillRect(e.x, e.y, hero.w, hero.h);
+    ctx.restore();
+    echoIndex++;
+  }
+
+  // رسم جدار الليزر الملاحق (The Chaser Wall)
+  ctx.save();
+  const gradChaser = ctx.createLinearGradient(chaser.x - 120, 0, chaser.x, 0);
+  gradChaser.addColorStop(0, 'rgba(239, 68, 68, 0.05)');
+  gradChaser.addColorStop(1, 'rgba(239, 68, 68, 0.7)');
+  ctx.fillStyle = gradChaser;
+  ctx.fillRect(chaser.x - 120, 0, 120, lvl.h);
+
+  ctx.strokeStyle = '#ef4444';
+  ctx.shadowColor = '#f43f5e';
+  ctx.shadowBlur = 24;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(chaser.x, 0);
+  ctx.lineTo(chaser.x, lvl.h);
+  ctx.stroke();
+  ctx.restore();
 
   // رسم المنصات
   const solids = [...lvl.platforms, ...(lvl.moving || [])];
@@ -903,7 +1054,6 @@ function render() {
       ctx.shadowColor = '#ff0055';
       ctx.shadowBlur = 15;
       ctx.fillRect(en.x, en.y, en.w, en.h);
-      // عين المستشعر
       ctx.fillStyle = '#fff';
       const eyeX = (en.dir === 1) ? en.x + en.w - 7 : en.x + 3;
       ctx.fillRect(eyeX, en.y + 7, 5, 5);
@@ -911,7 +1061,7 @@ function render() {
     });
   }
 
-  // رسم المسامير
+  // رسم الأفخاخ
   lvl.hazards.forEach(h => {
     if (h.d === 'BOTH' || h.d === sys.dimension) {
       ctx.save();
@@ -930,7 +1080,7 @@ function render() {
     }
   });
 
-  // رسم شظايا الطاقة الكريستالية
+  // رسم الكريستالات
   lvl.shards.forEach(s => {
     if (!s.collected) {
       ctx.save();
@@ -945,7 +1095,7 @@ function render() {
     }
   });
 
-  // بوابة النهاية
+  // بوابة الخروج
   const ex = lvl.exit;
   const opened = sys.shards >= sys.totalShards;
   ctx.save();
@@ -960,7 +1110,7 @@ function render() {
   }
   ctx.restore();
 
-  // رسم أشباح الاندفاع
+  // أشباح الـ Dash
   hero.ghosts.forEach(g => {
     ctx.save();
     ctx.globalAlpha = g.alpha;
@@ -969,7 +1119,7 @@ function render() {
     ctx.restore();
   });
 
-  // رسم الوشاح الإجرائي
+  // الوشاح
   ctx.save();
   ctx.strokeStyle = (sys.dimension === 'REAL') ? '#00f0ff' : '#ff007f';
   ctx.lineWidth = 4;
@@ -982,7 +1132,7 @@ function render() {
   ctx.stroke();
   ctx.restore();
 
-  // رسم اللاعب مع ميكانيكا الانضغاط (Squash/Stretch)
+  // رسم اللاعب والانضغاط الحركي
   ctx.save();
   ctx.translate(hero.x + hero.w / 2, hero.y + hero.h / 2);
   ctx.scale(hero.scaleX, hero.scaleY);
@@ -991,13 +1141,13 @@ function render() {
   ctx.shadowBlur = 16;
   ctx.fillRect(-hero.w / 2, -hero.h / 2, hero.w, hero.h);
 
-  // نظارة اللاعب
+  // النظارة
   ctx.fillStyle = (sys.dimension === 'REAL') ? '#00f0ff' : '#ff007f';
   const eyeX = (hero.facing === 1) ? 2 : -8;
   ctx.fillRect(eyeX, -hero.h / 2 + 8, 7, 5);
   ctx.restore();
 
-  // رسم الجزيئات
+  // الجزيئات
   for (let i = fxParticles.length - 1; i >= 0; i--) {
     const pt = fxParticles[i];
     pt.x += pt.vx;
@@ -1014,7 +1164,7 @@ function render() {
     ctx.restore();
   }
 
-  // نظام الإضاءة الحجمية الديناميكية (2D Radial Light)
+  // الإضاءة الديناميكية
   const grad = ctx.createRadialGradient(
     hero.x + hero.w/2, hero.y + hero.h/2, 20,
     hero.x + hero.w/2, hero.y + hero.h/2, 280
@@ -1023,6 +1173,13 @@ function render() {
   grad.addColorStop(1, 'rgba(2, 3, 6, 0.45)');
   ctx.fillStyle = grad;
   ctx.fillRect(cam.x, cam.y, W, H);
+
+  // وميض الـ Dash السينمائي (Impact Flash)
+  if (sys.flash > 0) {
+    ctx.fillStyle = `rgba(255, 255, 255, ${sys.flash})`;
+    ctx.fillRect(cam.x, cam.y, W, H);
+    sys.flash -= 0.05;
+  }
 
   ctx.restore();
 }
@@ -1045,7 +1202,7 @@ function drawGrid(col, step, maxW, maxH) {
 }
 
 // ==========================================
-// 8. الحلقة الرئيسية وشاشات النهاية
+// 8. الحلقة الرئيسية ونظام الرتب العالمي
 // ==========================================
 function engineLoop() {
   if (sys.running) {
@@ -1055,6 +1212,15 @@ function engineLoop() {
   requestAnimationFrame(engineLoop);
 }
 
+function calculateRank(totalTimeMs, deaths) {
+  const seconds = totalTimeMs / 1000;
+  if (deaths === 0 && seconds < 60) return { rank: 'S+', title: 'أسطورة السايبر المطلقة!' };
+  if (deaths <= 3 && seconds < 90) return { rank: 'S', title: 'خبير الأبعاد الخارق' };
+  if (deaths <= 8 && seconds < 130) return { rank: 'A', title: 'عدّاء محترف' };
+  if (deaths <= 15) return { rank: 'B', title: 'مقاتل صامد' };
+  return { rank: 'C', title: 'ناجٍ بصعوبة' };
+}
+
 function winGame() {
   sys.running = false;
   const elapsed = performance.now() - sys.timeStart;
@@ -1062,9 +1228,12 @@ function winGame() {
   const s = String(Math.floor((elapsed % 60000) / 1000)).padStart(2, '0');
   const ms = String(Math.floor((elapsed % 1000) / 10)).padStart(2, '0');
 
-  document.getElementById('m-title').innerText = "🏆 أسطورة الأبعاد!";
-  document.getElementById('m-desc').innerText = `تم القضاء على الخلل الرقمي والهروب بالكامل!\nالتوقيت العالمي للسرعة: ${m}:${s}.${ms}`;
-  document.getElementById('m-action').innerText = "إعادة التحدي";
+  const rankResult = calculateRank(elapsed, sys.deaths);
+
+  document.getElementById('rank-box').innerHTML = `<div class="rank-badge">${rankResult.rank}</div>`;
+  document.getElementById('m-title').innerText = rankResult.title;
+  document.getElementById('m-desc').innerText = `الوقت الكلي: ${m}:${s}.${ms}\nعدد الوفيات: ${sys.deaths}\nالتقييم التنافسي: رتبة ${rankResult.rank}`;
+  document.getElementById('m-action').innerText = "إعادة التحدي للرتبة S+";
   document.getElementById('menu-overlay').classList.remove('hidden');
 }
 
@@ -1074,6 +1243,8 @@ function launch() {
     document.documentElement.requestFullscreen().catch(()=>{});
   }
   document.getElementById('menu-overlay').classList.add('hidden');
+  document.getElementById('rank-box').innerHTML = '';
+  sys.deaths = 0;
   startLevel(0);
   sys.timeStart = performance.now();
   sys.running = true;
