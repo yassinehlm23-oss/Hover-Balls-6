@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Shadow of the Glitch: Cyber Legacy — Boss Encounter Edition</title>
+  <title>Shadow of the Glitch: Cyber Legacy — 10-Stage Campaign Edition</title>
   <style>
     :root {
       --primary: #00f0ff;
@@ -140,7 +140,7 @@
       transition: width 0.08s linear;
     }
 
-    /* شريط صحة الزعيم المطور مع مؤشر المراحل */
+    /* شريط صحة الزعيم */
     #boss-hud {
       position: fixed;
       top: calc(env(safe-area-inset-top, 14px) + 54px);
@@ -378,7 +378,7 @@
 <!-- واجهة HUD -->
 <div id="hud">
   <div class="hud-group">
-    <div class="hud-card" id="hud-level">المرحلة: 1 / 3</div>
+    <div class="hud-card" id="hud-level">المرحلة: 1 / 10</div>
     <div class="hud-card" id="dim-badge">✦ الواقع [REALITY]</div>
     <div class="bars-wrap">
       <div class="bar-shell" title="Health"><div id="hp-bar-fill"></div></div>
@@ -392,7 +392,7 @@
   </div>
 </div>
 
-<!-- شريط صحة الزعيم مع المراحل -->
+<!-- شريط صحة الزعيم -->
 <div id="boss-hud">
   <div class="boss-title-row">
     <span id="boss-name-label">GUARDIAN OF REALITY</span>
@@ -425,12 +425,11 @@
   <div id="rank-slot"></div>
   <h1 id="menu-title">SHADOW OF THE GLITCH</h1>
   <p id="menu-desc">
-    مواجهة الزعيم الكبرى: حارس الواقع بثلاث مراحل تصاعدية!
-    راقب إشارات الهجوم التحذيرية، بدّل الأبعاد لتفادي موجات البلازما،
-    واستغل نوافذ الضعف الذهبية لهزيمته ونيل وشاح النصر الأسطوري.
+    الحملة السيبرانية الكبرى: 10 مراحل ملحمية مع مواجهتي زعماء!
+    تحكّم في تبديل الأبعاد، استخدم السيف والنبضة، وتفوق في منصات الدقة السريعة.
   </p>
   <div class="btn-stack">
-    <button class="action-btn" id="btn-start">دخول العالم</button>
+    <button class="action-btn" id="btn-start">دخول الحملة (10 مراحل)</button>
     <button class="action-btn secondary-action" id="btn-open-settings">الإعدادات وتخصيص الأزرار</button>
   </div>
 </div>
@@ -482,8 +481,7 @@
 
 <script>
 /**
- * Shadow of the Glitch: Cyber Legacy — Boss Encounter Edition
- * مواجهة زعيم متقدمة بـ 3 مراحل، إشارات تلغرافية، موجات أبعاد، وأخطار حلبة مؤقتة
+ * Shadow of the Glitch: Cyber Legacy — 10-Stage Full Campaign Edition
  */
 
 // ==========================================
@@ -499,7 +497,7 @@ const CONFIG = {
   touchSize: 60
 };
 
-const STORAGE_KEY = 'SOTG_BOSS_SAVE_V7';
+const STORAGE_KEY = 'SOTG_CAMPAIGN10_SAVE_V8';
 
 class StorageManager {
   static load() {
@@ -563,12 +561,12 @@ class SoundFX {
         const t = this.ctx.currentTime;
         const osc = this.ctx.createOscillator();
         const g = this.ctx.createGain();
-        const isBossFight = (sys.level === 2 && boss.active);
-        const melody = isBossFight ? this.bossNotes : this.notes;
+        const isBossStage = (sys.level === 2 || sys.level === 9) && boss.active;
+        const melody = isBossStage ? this.bossNotes : this.notes;
 
         osc.type = (sys.dimFactor < 0.5) ? 'sine' : 'sawtooth';
         osc.frequency.setValueAtTime(melody[this.step % melody.length], t);
-        const vol = isBossFight ? 0.045 : ((sys.dimFactor < 0.5) ? 0.03 : 0.018);
+        const vol = isBossStage ? 0.045 : ((sys.dimFactor < 0.5) ? 0.03 : 0.018);
         g.gain.setValueAtTime(vol, t);
         g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
         osc.connect(g);
@@ -780,7 +778,8 @@ const sys = {
   shards: 0,
   totalShards: 0,
   timeScale: 1.0,
-  slowMoTimer: 0
+  slowMoTimer: 0,
+  currentCheckpoint: null
 };
 
 const cam = {
@@ -823,21 +822,21 @@ const chaser = {
   speed: 1.25
 };
 
-// كائن الزعيم المطور متعدد المراحل
 const boss = {
   active: false,
+  name: 'GUARDIAN OF REALITY',
   x: 0, y: 0,
   w: 58, h: 68,
   hp: 100, maxHp: 100,
-  phase: 1, // 1: Patrol/Charge, 2: Plasma/Shift, 3: Hazard/Slam
-  state: 'patrol', // patrol, telegraph, charge, vulnerable, slam_prep, slam_fall
+  phase: 1,
+  state: 'patrol',
   timer: 0,
   dir: 1,
   invulnTimer: 0,
   telegraphTimer: 0,
-  attackDim: 'BOTH', // البعد المرتبط بهجوم الزعيم
-  shockwaves: [], // موجات صدمية أرضية
-  arenaHazards: [] // مخاطر الحلبة المؤقتة في المرحلة 3
+  attackDim: 'BOTH',
+  shockwaves: [],
+  arenaHazards: []
 };
 
 let enemyProjectiles = [];
@@ -877,9 +876,10 @@ function emitParticles(x, y, color, count = 10, speedMul = 1) {
 }
 
 // ==========================================
-// 5. قوالب المراحل
+// 5. قوالب المراحل الـ 10 الكاملة (10-Stage Campaign Templates)
 // ==========================================
 const LEVEL_TEMPLATES = [
+  // 1. مدينة الواقع الرقمي: تعليمية متوازنة
   {
     name: 'مدينة الواقع الرقمي',
     w: 2800, h: 950,
@@ -915,8 +915,11 @@ const LEVEL_TEMPLATES = [
       { x: 1240, y: 530, collected: false },
       { x: 1800, y: 490, collected: false }
     ],
+    checkpoints: [],
     boss: null
   },
+
+  // 2. انهيار السايبر المعلق: قفزات دقيقة ومنصات متحركة
   {
     name: 'انهيار السايبر المعلق',
     w: 3200, h: 1000,
@@ -955,10 +958,13 @@ const LEVEL_TEMPLATES = [
       { x: 1200, y: 450, collected: false },
       { x: 2210, y: 440, collected: false }
     ],
+    checkpoints: [{ x: 1650, y: 640, activated: false }],
     boss: null
   },
+
+  // 3. حلبة حارس الواقع: الزعيم الأول
   {
-    name: 'حلبة حارس الواقع (المواجهة النهائية)',
+    name: 'حلبة حارس الواقع',
     w: 2400, h: 900,
     spawn: { x: 150, y: 720 },
     exit: { x: 2220, y: 720 },
@@ -967,7 +973,6 @@ const LEVEL_TEMPLATES = [
       { x: 0, y: 800, w: 2400, h: 100, d: 'BOTH' },
       { x: 0, y: 0, w: 50, h: 800, d: 'BOTH' },
       { x: 2350, y: 0, w: 50, h: 800, d: 'BOTH' },
-      // منصات هوائية تكتيكية
       { x: 300, y: 640, w: 220, h: 24, d: 'REAL' },
       { x: 660, y: 520, w: 240, h: 24, d: 'GLITCH' },
       { x: 1080, y: 410, w: 260, h: 24, d: 'BOTH' },
@@ -982,7 +987,295 @@ const LEVEL_TEMPLATES = [
       { x: 1210, y: 350, collected: false },
       { x: 2010, y: 590, collected: false }
     ],
-    boss: { spawnX: 1300, spawnY: 732 }
+    checkpoints: [],
+    boss: { name: 'GUARDIAN OF REALITY', spawnX: 1300, spawnY: 732 }
+  },
+
+  // 4. محطة الطاقة المهجورة: أشعة ليزر وأرضيات كهربائية
+  {
+    name: 'محطة الطاقة المهجورة',
+    w: 3000, h: 950,
+    spawn: { x: 120, y: 780 },
+    exit: { x: 2850, y: 350 },
+    chaserSpeed: 1.25,
+    platforms: [
+      { x: 0, y: 850, w: 500, h: 100, d: 'BOTH' },
+      { x: 600, y: 750, w: 160, h: 24, d: 'REAL' },
+      { x: 860, y: 660, w: 180, h: 24, d: 'GLITCH' },
+      { x: 1140, y: 560, w: 160, h: 24, d: 'REAL' },
+      { x: 1400, y: 640, w: 200, h: 24, d: 'BOTH' },
+      { x: 1700, y: 540, w: 170, h: 24, d: 'GLITCH' },
+      { x: 1980, y: 440, w: 170, h: 24, d: 'REAL' },
+      { x: 2250, y: 520, w: 180, h: 24, d: 'GLITCH' },
+      { x: 2520, y: 420, w: 480, h: 80, d: 'BOTH' }
+    ],
+    moving: [
+      { x: 1400, y: 580, w: 120, h: 20, d: 'REAL', minX: 1350, maxX: 1600, spd: 3.0, dir: 1 }
+    ],
+    hazards: [
+      { x: 500, y: 910, w: 2020, h: 40, d: 'BOTH' },
+      { x: 880, y: 636, w: 80, h: 24, d: 'GLITCH' },
+      { x: 2000, y: 416, w: 70, h: 24, d: 'REAL' }
+    ],
+    enemies: [
+      { type: 'turret', x: 1180, y: 526, w: 30, h: 34, alive: true, hp: 2, maxHp: 2, shootCooldown: 1.5, timer: 0.2, d: 'REAL' },
+      { type: 'patrol', x: 1750, y: 500, w: 26, h: 26, minX: 1710, maxX: 1840, spd: 2.2, dir: 1, alive: true, hp: 1, maxHp: 1, d: 'GLITCH' },
+      { type: 'stalker', x: 2300, y: 480, w: 26, h: 26, minX: 2260, maxX: 2390, spd: 3.2, dir: 1, alive: true, hp: 2, maxHp: 2, d: 'GLITCH' }
+    ],
+    shards: [
+      { x: 950, y: 610, collected: false },
+      { x: 1460, y: 590, collected: false },
+      { x: 2340, y: 470, collected: false }
+    ],
+    checkpoints: [{ x: 1420, y: 590, activated: false }],
+    boss: null
+  },
+
+  // 5. المدينة الممطرة: منصات زلقة ورؤية ضبابية
+  {
+    name: 'المدينة الممطرة',
+    w: 3200, h: 1000,
+    spawn: { x: 100, y: 800 },
+    exit: { x: 3050, y: 400 },
+    chaserSpeed: 1.30,
+    platforms: [
+      { x: 0, y: 880, w: 460, h: 120, d: 'BOTH' },
+      { x: 550, y: 780, w: 140, h: 24, d: 'GLITCH' },
+      { x: 780, y: 680, w: 150, h: 24, d: 'REAL' },
+      { x: 1030, y: 590, w: 150, h: 24, d: 'GLITCH' },
+      { x: 1280, y: 690, w: 160, h: 24, d: 'REAL' },
+      { x: 1540, y: 580, w: 180, h: 24, d: 'BOTH' },
+      { x: 1820, y: 480, w: 150, h: 24, d: 'REAL' },
+      { x: 2070, y: 580, w: 150, h: 24, d: 'GLITCH' },
+      { x: 2320, y: 480, w: 160, h: 24, d: 'REAL' },
+      { x: 2580, y: 400, w: 160, h: 24, d: 'GLITCH' },
+      { x: 2840, y: 460, w: 360, h: 80, d: 'BOTH' }
+    ],
+    moving: [
+      { x: 1030, y: 530, w: 100, h: 20, d: 'GLITCH', minX: 980, maxX: 1200, spd: 3.2, dir: 1 },
+      { x: 2320, y: 420, w: 110, h: 20, d: 'REAL', minX: 2280, maxX: 2480, spd: 3.0, dir: 1 }
+    ],
+    hazards: [
+      { x: 460, y: 950, w: 2380, h: 40, d: 'BOTH' },
+      { x: 800, y: 656, w: 60, h: 24, d: 'REAL' },
+      { x: 2090, y: 556, w: 60, h: 24, d: 'GLITCH' }
+    ],
+    enemies: [
+      { type: 'stalker', x: 820, y: 640, w: 26, h: 26, minX: 790, maxX: 910, spd: 3.5, dir: 1, alive: true, hp: 2, maxHp: 2, d: 'REAL' },
+      { type: 'turret', x: 1600, y: 546, w: 30, h: 34, alive: true, hp: 2, maxHp: 2, shootCooldown: 1.4, timer: 0.8, d: 'BOTH' },
+      { type: 'patrol', x: 2360, y: 440, w: 26, h: 26, minX: 2330, maxX: 2450, spd: 2.4, dir: 1, alive: true, hp: 1, maxHp: 1, d: 'REAL' }
+    ],
+    shards: [
+      { x: 850, y: 630, collected: false },
+      { x: 1630, y: 530, collected: false },
+      { x: 2650, y: 350, collected: false }
+    ],
+    checkpoints: [{ x: 1560, y: 530, activated: false }],
+    boss: null
+  },
+
+  // 6. مختبر الأبعاد: ألغاز تبديل REAL و GLITCH
+  {
+    name: 'مختبر الأبعاد',
+    w: 3000, h: 1000,
+    spawn: { x: 120, y: 800 },
+    exit: { x: 2800, y: 320 },
+    chaserSpeed: 1.20,
+    platforms: [
+      { x: 0, y: 880, w: 420, h: 100, d: 'BOTH' },
+      { x: 500, y: 780, w: 140, h: 24, d: 'REAL' },
+      { x: 740, y: 680, w: 140, h: 24, d: 'GLITCH' },
+      { x: 980, y: 580, w: 140, h: 24, d: 'REAL' },
+      { x: 1220, y: 480, w: 140, h: 24, d: 'GLITCH' },
+      { x: 1460, y: 580, w: 150, h: 24, d: 'REAL' },
+      { x: 1710, y: 680, w: 150, h: 24, d: 'GLITCH' },
+      { x: 1960, y: 580, w: 150, h: 24, d: 'REAL' },
+      { x: 2210, y: 480, w: 150, h: 24, d: 'GLITCH' },
+      { x: 2460, y: 380, w: 160, h: 24, d: 'REAL' },
+      { x: 2700, y: 400, w: 300, h: 80, d: 'BOTH' }
+    ],
+    moving: [
+      { x: 740, y: 620, w: 90, h: 20, d: 'GLITCH', minX: 700, maxX: 880, spd: 3.2, dir: 1 },
+      { x: 1960, y: 520, w: 90, h: 20, d: 'REAL', minX: 1920, maxX: 2100, spd: 3.2, dir: 1 }
+    ],
+    hazards: [
+      { x: 420, y: 940, w: 2280, h: 40, d: 'BOTH' },
+      { x: 1000, y: 556, w: 80, h: 24, d: 'REAL' },
+      { x: 2230, y: 456, w: 80, h: 24, d: 'GLITCH' }
+    ],
+    enemies: [
+      { type: 'turret', x: 550, y: 746, w: 30, h: 34, alive: true, hp: 2, maxHp: 2, shootCooldown: 1.7, timer: 0.2, d: 'REAL' },
+      { type: 'stalker', x: 1260, y: 440, w: 26, h: 26, minX: 1230, maxX: 1340, spd: 3.6, dir: 1, alive: true, hp: 2, maxHp: 2, d: 'GLITCH' },
+      { type: 'turret', x: 2510, y: 346, w: 30, h: 34, alive: true, hp: 2, maxHp: 2, shootCooldown: 1.5, timer: 1.1, d: 'REAL' }
+    ],
+    shards: [
+      { x: 780, y: 580, collected: false },
+      { x: 1520, y: 530, collected: false },
+      { x: 2270, y: 430, collected: false }
+    ],
+    checkpoints: [{ x: 1480, y: 530, activated: false }],
+    boss: null
+  },
+
+  // 7. المصنع الآلي: مكابس ومنصات عمودية سريعة
+  {
+    name: 'المصنع الآلي',
+    w: 3200, h: 1050,
+    spawn: { x: 120, y: 880 },
+    exit: { x: 3000, y: 360 },
+    chaserSpeed: 1.35,
+    platforms: [
+      { x: 0, y: 950, w: 450, h: 100, d: 'BOTH' },
+      { x: 540, y: 850, w: 140, h: 24, d: 'REAL' },
+      { x: 780, y: 740, w: 150, h: 24, d: 'GLITCH' },
+      { x: 1020, y: 640, w: 160, h: 24, d: 'REAL' },
+      { x: 1280, y: 740, w: 150, h: 24, d: 'GLITCH' },
+      { x: 1540, y: 640, w: 180, h: 24, d: 'BOTH' },
+      { x: 1820, y: 540, w: 150, h: 24, d: 'REAL' },
+      { x: 2080, y: 640, w: 150, h: 24, d: 'GLITCH' },
+      { x: 2340, y: 530, w: 150, h: 24, d: 'REAL' },
+      { x: 2600, y: 430, w: 160, h: 24, d: 'GLITCH' },
+      { x: 2850, y: 450, w: 350, h: 80, d: 'BOTH' }
+    ],
+    moving: [
+      { x: 1020, y: 580, w: 100, h: 20, d: 'REAL', minX: 980, maxX: 1180, spd: 3.5, dir: 1 },
+      { x: 1820, y: 480, w: 100, h: 20, d: 'REAL', minX: 1780, maxX: 1980, spd: 3.5, dir: 1 }
+    ],
+    hazards: [
+      { x: 450, y: 1000, w: 2400, h: 40, d: 'BOTH' },
+      { x: 800, y: 716, w: 80, h: 24, d: 'GLITCH' },
+      { x: 2100, y: 616, w: 80, h: 24, d: 'GLITCH' }
+    ],
+    enemies: [
+      { type: 'patrol', x: 580, y: 810, w: 26, h: 26, minX: 550, maxX: 660, spd: 2.6, dir: 1, alive: true, hp: 1, maxHp: 1, d: 'REAL' },
+      { type: 'turret', x: 1590, y: 606, w: 30, h: 34, alive: true, hp: 2, maxHp: 2, shootCooldown: 1.4, timer: 0.5, d: 'BOTH' },
+      { type: 'stalker', x: 2380, y: 490, w: 26, h: 26, minX: 2350, maxX: 2470, spd: 3.6, dir: 1, alive: true, hp: 2, maxHp: 2, d: 'REAL' }
+    ],
+    shards: [
+      { x: 850, y: 690, collected: false },
+      { x: 1620, y: 590, collected: false },
+      { x: 2670, y: 380, collected: false }
+    ],
+    checkpoints: [{ x: 1560, y: 590, activated: false }],
+    boss: null
+  },
+
+  // 8. متاهة الخلل: مسارات متشعبة وأبواب زمنية
+  {
+    name: 'متاهة الخلل',
+    w: 3400, h: 1050,
+    spawn: { x: 100, y: 860 },
+    exit: { x: 3200, y: 300 },
+    chaserSpeed: 1.40,
+    platforms: [
+      { x: 0, y: 940, w: 400, h: 100, d: 'BOTH' },
+      { x: 480, y: 830, w: 140, h: 24, d: 'REAL' },
+      { x: 720, y: 730, w: 150, h: 24, d: 'GLITCH' },
+      { x: 960, y: 630, w: 150, h: 24, d: 'REAL' },
+      { x: 1200, y: 530, w: 160, h: 24, d: 'GLITCH' },
+      { x: 1460, y: 630, w: 160, h: 24, d: 'BOTH' },
+      { x: 1720, y: 530, w: 150, h: 24, d: 'REAL' },
+      { x: 1980, y: 430, w: 150, h: 24, d: 'GLITCH' },
+      { x: 2240, y: 530, w: 150, h: 24, d: 'REAL' },
+      { x: 2500, y: 430, w: 160, h: 24, d: 'GLITCH' },
+      { x: 2760, y: 350, w: 160, h: 24, d: 'REAL' },
+      { x: 3020, y: 380, w: 380, h: 80, d: 'BOTH' }
+    ],
+    moving: [
+      { x: 1200, y: 470, w: 100, h: 20, d: 'GLITCH', minX: 1150, maxX: 1350, spd: 3.4, dir: 1 },
+      { x: 2500, y: 370, w: 100, h: 20, d: 'GLITCH', minX: 2450, maxX: 2650, spd: 3.5, dir: 1 }
+    ],
+    hazards: [
+      { x: 400, y: 1000, w: 2620, h: 40, d: 'BOTH' },
+      { x: 740, y: 706, w: 70, h: 24, d: 'GLITCH' },
+      { x: 2000, y: 406, w: 70, h: 24, d: 'GLITCH' }
+    ],
+    enemies: [
+      { type: 'stalker', x: 760, y: 690, w: 26, h: 26, minX: 730, maxX: 850, spd: 3.8, dir: 1, alive: true, hp: 2, maxHp: 2, d: 'GLITCH' },
+      { type: 'turret', x: 1510, y: 596, w: 30, h: 34, alive: true, hp: 2, maxHp: 2, shootCooldown: 1.3, timer: 0.3, d: 'BOTH' },
+      { type: 'turret', x: 2790, y: 316, w: 30, h: 34, alive: true, hp: 2, maxHp: 2, shootCooldown: 1.3, timer: 0.9, d: 'REAL' }
+    ],
+    shards: [
+      { x: 780, y: 680, collected: false },
+      { x: 1530, y: 580, collected: false },
+      { x: 2830, y: 300, collected: false }
+    ],
+    checkpoints: [{ x: 1490, y: 580, activated: false }],
+    boss: null
+  },
+
+  // 9. انهيار الواقع: بيئة متدهورة تتطلب سرعة فائقة
+  {
+    name: 'انهيار الواقع',
+    w: 3600, h: 1050,
+    spawn: { x: 120, y: 880 },
+    exit: { x: 3420, y: 280 },
+    chaserSpeed: 1.50,
+    platforms: [
+      { x: 0, y: 960, w: 400, h: 100, d: 'BOTH' },
+      { x: 490, y: 860, w: 140, h: 24, d: 'REAL' },
+      { x: 730, y: 760, w: 140, h: 24, d: 'GLITCH' },
+      { x: 970, y: 660, w: 140, h: 24, d: 'REAL' },
+      { x: 1220, y: 560, w: 150, h: 24, d: 'GLITCH' },
+      { x: 1470, y: 460, w: 150, h: 24, d: 'REAL' },
+      { x: 1720, y: 560, w: 160, h: 24, d: 'BOTH' },
+      { x: 1980, y: 460, w: 150, h: 24, d: 'GLITCH' },
+      { x: 2240, y: 370, w: 150, h: 24, d: 'REAL' },
+      { x: 2500, y: 470, w: 150, h: 24, d: 'GLITCH' },
+      { x: 2760, y: 380, w: 160, h: 24, d: 'REAL' },
+      { x: 3020, y: 310, w: 160, h: 24, d: 'GLITCH' },
+      { x: 3280, y: 350, w: 320, h: 80, d: 'BOTH' }
+    ],
+    moving: [
+      { x: 1220, y: 500, w: 90, h: 20, d: 'GLITCH', minX: 1180, maxX: 1370, spd: 3.8, dir: 1 },
+      { x: 2500, y: 410, w: 90, h: 20, d: 'GLITCH', minX: 2460, maxX: 2650, spd: 4.0, dir: 1 }
+    ],
+    hazards: [
+      { x: 400, y: 1010, w: 2880, h: 40, d: 'BOTH' },
+      { x: 750, y: 736, w: 70, h: 24, d: 'GLITCH' },
+      { x: 2260, y: 346, w: 70, h: 24, d: 'REAL' }
+    ],
+    enemies: [
+      { type: 'stalker', x: 770, y: 720, w: 26, h: 26, minX: 740, maxX: 850, spd: 4.0, dir: 1, alive: true, hp: 2, maxHp: 2, d: 'GLITCH' },
+      { type: 'turret', x: 1770, y: 526, w: 30, h: 34, alive: true, hp: 2, maxHp: 2, shootCooldown: 1.2, timer: 0.2, d: 'BOTH' },
+      { type: 'stalker', x: 2790, y: 340, w: 26, h: 26, minX: 2770, maxX: 2890, spd: 4.2, dir: 1, alive: true, hp: 2, maxHp: 2, d: 'REAL' }
+    ],
+    shards: [
+      { x: 790, y: 710, collected: false },
+      { x: 1790, y: 510, collected: false },
+      { x: 3080, y: 260, collected: false }
+    ],
+    checkpoints: [{ x: 1750, y: 510, activated: false }],
+    boss: null
+  },
+
+  // 10. قلب النظام: المواجهة النهائية مع زعيم الخلل الفائق
+  {
+    name: 'قلب النظام (المواجهة الختامية)',
+    w: 2600, h: 950,
+    spawn: { x: 150, y: 740 },
+    exit: { x: 2420, y: 740 },
+    chaserSpeed: 0,
+    platforms: [
+      { x: 0, y: 820, w: 2600, h: 130, d: 'BOTH' },
+      { x: 0, y: 0, w: 50, h: 820, d: 'BOTH' },
+      { x: 2550, y: 0, w: 50, h: 820, d: 'BOTH' },
+      { x: 280, y: 650, w: 220, h: 24, d: 'REAL' },
+      { x: 640, y: 530, w: 240, h: 24, d: 'GLITCH' },
+      { x: 1040, y: 410, w: 280, h: 24, d: 'BOTH' },
+      { x: 1480, y: 530, w: 240, h: 24, d: 'GLITCH' },
+      { x: 1880, y: 650, w: 220, h: 24, d: 'REAL' }
+    ],
+    moving: [],
+    hazards: [],
+    enemies: [],
+    shards: [
+      { x: 390, y: 600, collected: false },
+      { x: 1180, y: 350, collected: false },
+      { x: 1990, y: 600, collected: false }
+    ],
+    checkpoints: [],
+    boss: { name: 'CORE OF THE GLITCH', spawnX: 1400, spawnY: 752 }
   }
 ];
 
@@ -1101,7 +1394,7 @@ window.addEventListener('blur', () => {
 });
 
 // ==========================================
-// 7. النواة الفيزيائية وتصادمات الحلبة
+// 7. النواة الفيزيائية والقدرات والقتال
 // ==========================================
 function checkAABB(a, b) {
   return a.x < b.x + b.w &&
@@ -1260,7 +1553,6 @@ function triggerAttack() {
     return true;
   });
 
-  // إصابة الزعيم بالسيف في نافذة الضعف
   if (boss.active && checkAABB(slashBox, boss)) {
     damageBoss(15);
   }
@@ -1307,11 +1599,9 @@ function triggerEMP() {
   }
 }
 
-// نظام إصابة الزعيم ونوافذ الضعف والارتداد
 function damageBoss(amount) {
   if (!boss.active || boss.invulnTimer > 0) return;
 
-  // الزعيم قابل للإصابة فقط في حالة الضعف الذهبية أو بعد إفشال هجومه
   if (boss.state !== 'vulnerable') {
     audio.play('shift_denied');
     emitParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, '#64748b', 8);
@@ -1325,11 +1615,9 @@ function damageBoss(amount) {
   sys.shake = CONFIG.shake ? 12 : 0;
   emitParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, '#fbbf24', 28, 2);
 
-  // ارتداد هوائي ناعم للبطل لمنع التداخل
   hero.vy = CONSTANTS.jumpForce * 0.78;
   hero.vx = -hero.facing * 4.5;
 
-  // تحديث المرحلة القتالية بحسب الصحة
   const hpPct = (boss.hp / boss.maxHp) * 100;
   if (hpPct <= 25 && boss.phase < 3) {
     boss.phase = 3;
@@ -1360,6 +1648,7 @@ function updateBossHUD() {
   const hpPct = Math.max(0, (boss.hp / boss.maxHp) * 100);
   document.getElementById('boss-hp-fill').style.width = hpPct + '%';
   document.getElementById('boss-phase-label').innerText = `المرحلة ${boss.phase} / 3`;
+  document.getElementById('boss-name-label').innerText = boss.name;
 }
 
 function defeatBoss() {
@@ -1372,7 +1661,6 @@ function defeatBoss() {
   emitParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, '#00f0ff', 65, 3.5);
   emitParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, '#ff007f', 65, 3.5);
 
-  // فتح المكافأة الدائمة
   SAVE_STATE.unlockedPrismScarf = true;
   StorageManager.save(SAVE_STATE);
 }
@@ -1391,12 +1679,12 @@ function hurtHero(amount = 1) {
   }
 }
 
-// إعادة ضبط الزعيم بالكامل عند بدء المرحلة أو الإعادة
 function resetBossState(lvl) {
   boss.shockwaves = [];
   boss.arenaHazards = [];
   if (lvl.boss) {
     boss.active = true;
+    boss.name = lvl.boss.name || 'GUARDIAN OF REALITY';
     boss.hp = boss.maxHp;
     boss.phase = 1;
     boss.state = 'patrol';
@@ -1431,8 +1719,10 @@ function killHero() {
   enemyProjectiles = [];
 
   const lvl = currentLevelData;
-  hero.x = lvl.spawn.x;
-  hero.y = lvl.spawn.y;
+  const spawnPos = sys.currentCheckpoint || lvl.spawn;
+
+  hero.x = spawnPos.x;
+  hero.y = spawnPos.y;
   hero.vx = 0;
   hero.vy = 0;
   hero.hp = CONSTANTS.maxHp;
@@ -1444,7 +1734,7 @@ function killHero() {
   hero.empWave.active = false;
 
   if (lvl.chaserSpeed > 0) {
-    chaser.x = lvl.spawn.x - 380;
+    chaser.x = spawnPos.x - 380;
   }
 
   resetBossState(lvl);
@@ -1459,6 +1749,7 @@ function loadLevel(idx) {
   sys.activeLevelTime = 0;
   sys.levelDeaths = 0;
   sys.levelSplits = [];
+  sys.currentCheckpoint = null;
   currentGhostRecord = [];
   enemyProjectiles = [];
   activeReplayGhost = SAVE_STATE.ghostTrails[idx] ? [...SAVE_STATE.ghostTrails[idx]] : [];
@@ -1537,20 +1828,18 @@ function updateBossBehavior(dt) {
   if (boss.invulnTimer > 0) boss.invulnTimer -= dt;
   boss.timer += dt;
 
+  const lvl = currentLevelData;
   const arenaLeft = 80;
-  const arenaRight = 2300 - boss.w;
-  const groundY = 800 - boss.h;
+  const arenaRight = lvl.w - 100 - boss.w;
+  const groundY = 820 - boss.h;
 
-  // تحديث المخاطر المؤقتة في الحلبة (المرحلة 3)
   boss.arenaHazards.forEach(h => {
     h.timer += dt;
-    // تفعيل الخطر بعد انتهاء فترة الإنذار (Telegraph)
     if (h.timer >= h.delay && !h.active) {
       h.active = true;
       audio.play('boss_slam');
       sys.shake = CONFIG.shake ? 8 : 0;
     }
-    // إلحاق الضرر باللاعب إذا كان في منطقة الخطر النشطة
     if (h.active && h.timer < h.delay + h.duration) {
       if (checkAABB(hero, h)) {
         hurtHero(1);
@@ -1559,11 +1848,9 @@ function updateBossBehavior(dt) {
   });
   boss.arenaHazards = boss.arenaHazards.filter(h => h.timer < h.delay + h.duration);
 
-  // تحديث الموجات الصدمية
   boss.shockwaves.forEach(sw => {
     sw.x += sw.vx * 60 * dt;
     sw.life -= dt;
-    // تلحق ضرراً فقط إذا كان اللاعب في نفس البعد أو كانت الموجة لكلا البعدين
     if (sw.dim === 'BOTH' || sw.dim === sys.dimension) {
       if (checkAABB(hero, { x: sw.x - 14, y: groundY - 10, w: 28, h: 26 })) {
         hurtHero(1);
@@ -1572,7 +1859,7 @@ function updateBossBehavior(dt) {
   });
   boss.shockwaves = boss.shockwaves.filter(sw => sw.life > 0);
 
-  // نمط المرحلة 1 (100% - 60%): دوريات + تلغراف + اندفاع
+  // أنماط الأطوار
   if (boss.phase === 1) {
     if (boss.state === 'patrol') {
       boss.x += (boss.dir * 2.8) * 60 * dt;
@@ -1605,16 +1892,12 @@ function updateBossBehavior(dt) {
         boss.timer = 0;
       }
     }
-  }
-
-  // نمط المرحلة 2 (60% - 25%): سرعة أعلى + مقذوفات + موجات أبعاد
-  else if (boss.phase === 2) {
+  } else if (boss.phase === 2) {
     if (boss.state === 'patrol') {
       boss.x += (boss.dir * 3.8) * 60 * dt;
       if (boss.x > arenaRight - 200) { boss.x = arenaRight - 200; boss.dir = -1; }
       if (boss.x < arenaLeft + 200) { boss.x = arenaLeft + 200; boss.dir = 1; }
 
-      // إطلاق مقذوفات دورية
       if (boss.timer > 1.8 && boss.timer < 1.85) {
         const pDir = (hero.x > boss.x) ? 1 : -1;
         enemyProjectiles.push(
@@ -1651,10 +1934,7 @@ function updateBossBehavior(dt) {
         boss.timer = 0;
       }
     }
-  }
-
-  // نمط المرحلة 3 (< 25%): هبوط ساحق (Slam) + مخاطر حلبة + موجات أرضية
-  else if (boss.phase === 3) {
+  } else if (boss.phase === 3) {
     if (boss.state === 'patrol') {
       boss.x += (boss.dir * 4.4) * 60 * dt;
       if (boss.x > arenaRight - 200) { boss.x = arenaRight - 200; boss.dir = -1; }
@@ -1665,13 +1945,11 @@ function updateBossBehavior(dt) {
         boss.timer = 0;
         audio.play('boss_telegraph');
 
-        // خلق مناطق خطر تحذيرية في منتصف الحلبة
         boss.arenaHazards.push(
-          { x: 900, y: 780, w: 600, h: 20, timer: 0, delay: 0.9, duration: 2.2, active: false }
+          { x: lvl.w / 2 - 300, y: 800, w: 600, h: 20, timer: 0, delay: 0.9, duration: 2.2, active: false }
         );
       }
     } else if (boss.state === 'slam_prep') {
-      // يرتفع في الهواء فوق موقع اللاعب
       boss.y -= 7.5 * 60 * dt;
       if (boss.y < 350 || boss.timer > 0.8) {
         boss.x = Math.max(arenaLeft, Math.min(arenaRight, hero.x - boss.w / 2));
@@ -1688,7 +1966,6 @@ function updateBossBehavior(dt) {
         sys.shake = CONFIG.shake ? 18 : 0;
         sys.flash = 0.3;
 
-        // إطلاق موجتين صدميتين في كلا الاتجاهين
         boss.shockwaves.push(
           { x: boss.x - 10, vx: -6.5, life: 1.8, dim: 'BOTH' },
           { x: boss.x + boss.w + 10, vx: 6.5, life: 1.8, dim: 'BOTH' }
@@ -1702,21 +1979,17 @@ function updateBossBehavior(dt) {
     }
   }
 
-  // ثبات حدود الحلبة للزعيم
   boss.x = Math.max(arenaLeft, Math.min(arenaRight, boss.x));
   if (boss.state !== 'slam_prep' && boss.state !== 'slam_fall') {
     boss.y = groundY;
   }
 
-  // اصطدام اللاعب بجسم الزعيم
   if (checkAABB(hero, boss)) {
     if (boss.state === 'vulnerable') {
-      // إلحاق ضرر بالزعيم عند القفز عليه في نافذة الضعف
       if (hero.vy > 1.5 || hero.isDashing) {
         damageBoss(20);
       }
     } else {
-      // هجمات البعد: إذا كان الهجوم مخصصاً لبعد، واللاعب في البعد الآخر فلا يتضرر
       const ignoresDamage = (boss.attackDim !== 'BOTH' && boss.attackDim !== sys.dimension);
       if (!ignoresDamage) {
         hurtHero(1);
@@ -1820,10 +2093,8 @@ function fixedPhysics(dt) {
     });
   }
 
-  // تحديث سلوك الزعيم القتالي
   updateBossBehavior(effDt);
 
-  // تحديث الأعداء العاديين
   if (lvl.enemies) {
     for (let i = 0; i < lvl.enemies.length; i++) {
       const en = lvl.enemies[i];
@@ -1875,7 +2146,6 @@ function fixedPhysics(dt) {
     }
   }
 
-  // تحديث مقذوفات الأعداء
   enemyProjectiles = enemyProjectiles.filter(proj => {
     proj.x += proj.vx * 60 * effDt;
     proj.life -= effDt;
@@ -1896,7 +2166,6 @@ function fixedPhysics(dt) {
     return proj.life > 0;
   });
 
-  // حركة البطل والجاذبية
   if (hero.isDashing) {
     hero.dashTimer -= effDt;
     hero.ghosts.push({ x: hero.x, y: hero.y, alpha: 0.75, color: '#f59e0b' });
@@ -1982,7 +2251,6 @@ function fixedPhysics(dt) {
     hero.vy += 30.0 * effDt;
   }
 
-  // فحص التصادم المتدرج
   const solids = getActiveSolids();
   hero.isWallSliding = false;
   hero.wallDir = 0;
@@ -2044,7 +2312,6 @@ function fixedPhysics(dt) {
     }
   }
 
-  // الوشاح
   const neckX = hero.x + (hero.facing === 1 ? 5 : 19);
   const neckY = hero.y + 11;
   hero.scarf[0].x = neckX;
@@ -2061,7 +2328,6 @@ function fixedPhysics(dt) {
     cur.y += (prev.y + liftY + wave - cur.y) * 0.38 + 0.6;
   }
 
-  // فحص الأفخاخ
   for (let i = 0; i < lvl.hazards.length; i++) {
     const h = lvl.hazards[i];
     if (h.d === 'BOTH' || h.d === sys.dimension) {
@@ -2075,6 +2341,18 @@ function fixedPhysics(dt) {
   if (hero.y > lvl.h + 80) {
     killHero();
     return;
+  }
+
+  // تفعيل نقاط الحفظ (Checkpoints)
+  if (lvl.checkpoints) {
+    lvl.checkpoints.forEach(cp => {
+      if (!cp.activated && checkAABB(hero, { x: cp.x - 20, y: cp.y - 30, w: 40, h: 40 })) {
+        cp.activated = true;
+        sys.currentCheckpoint = { x: cp.x, y: cp.y };
+        audio.play('shard');
+        emitParticles(cp.x, cp.y, '#10b981', 15);
+      }
+    });
   }
 
   // جمع الشظايا
@@ -2097,13 +2375,11 @@ function fixedPhysics(dt) {
     return;
   }
 
-  // أشباح الاندفاع
   for (let i = hero.ghosts.length - 1; i >= 0; i--) {
     hero.ghosts[i].alpha -= 0.08;
     if (hero.ghosts[i].alpha <= 0) hero.ghosts.splice(i, 1);
   }
 
-  // كاميرا استشرافية
   const lookAheadTarget = hero.facing * Math.min(Math.abs(hero.vx) * 12, 70);
   cam.lookAheadX += (lookAheadTarget - cam.lookAheadX) * 0.05;
 
@@ -2134,7 +2410,7 @@ function fixedPhysics(dt) {
 }
 
 // ==========================================
-// 9. محرك الرسم المتطور ورسم الزعيم والمؤثرات
+// 9. محرك الرسم المتطور والمؤثرات
 // ==========================================
 function renderCityParallax(lvlW, lvlH) {
   const skyGrad = ctx.createLinearGradient(0, cam.y, 0, cam.y + viewH);
@@ -2146,7 +2422,6 @@ function renderCityParallax(lvlW, lvlH) {
   ctx.fillStyle = skyGrad;
   ctx.fillRect(cam.x, cam.y, viewW, viewH);
 
-  // ناطحات سحاب بعيدة
   ctx.save();
   const farOffset = cam.x * 0.15;
   const farBuildingW = 120;
@@ -2160,7 +2435,6 @@ function renderCityParallax(lvlW, lvlH) {
   }
   ctx.restore();
 
-  // مبانٍ متوسطة
   ctx.save();
   const midOffset = cam.x * 0.35;
   const midW = 90;
@@ -2242,7 +2516,6 @@ function renderPlayer() {
 
   ctx.restore();
 
-  // رسم الوشاح (مع دعم الوشاح الأسطوري المفتوح كجائزة)
   ctx.save();
   ctx.strokeStyle = SAVE_STATE.unlockedPrismScarf
     ? `hsl(${(performance.now() * 0.1) % 360}, 100%, 65%)`
@@ -2264,12 +2537,11 @@ function renderPlayer() {
   ctx.restore();
 }
 
-// رسم الزعيم الفائق مع إشارات التلغراف ونوافذ الضعف
 function renderBoss() {
   if (!boss.active) return;
+  const lvl = currentLevelData;
   ctx.save();
 
-  // 1. رسم شعاع التلغراف التحذيري (Laser Telegraph Beam)
   if (boss.state === 'telegraph' || boss.state === 'slam_prep') {
     ctx.save();
     ctx.strokeStyle = (boss.phase === 3) ? '#ff0055' : '#f59e0b';
@@ -2284,23 +2556,21 @@ function renderBoss() {
       ctx.lineTo(beamTargetX, boss.y + boss.h / 2);
     } else {
       ctx.moveTo(boss.x + boss.w / 2, boss.y + boss.h);
-      ctx.lineTo(boss.x + boss.w / 2, 800);
+      ctx.lineTo(boss.x + boss.w / 2, 820);
     }
     ctx.stroke();
     ctx.restore();
   }
 
-  // 2. وميض المناعة عند تضرر الزعيم
   if (boss.invulnTimer > 0 && Math.floor(performance.now() / 50) % 2 === 0) {
     ctx.globalAlpha = 0.45;
   }
 
-  // 3. درع الزعيم وهيكله الميكانيكي
   let bossColor = '#ff0055';
   let bossGlow = '#ff0055';
 
   if (boss.state === 'vulnerable') {
-    bossColor = '#fbbf24'; // نافذة الضعف الذهبية
+    bossColor = '#fbbf24';
     bossGlow = '#f59e0b';
   } else if (boss.phase === 2) {
     bossColor = (boss.attackDim === 'REAL') ? '#00f0ff' : '#ff007f';
@@ -2321,16 +2591,13 @@ function renderBoss() {
   }
   ctx.strokeRect(boss.x, boss.y, boss.w, boss.h);
 
-  // قلب الطاقة المركزي للزعيم
   ctx.fillStyle = bossColor;
   ctx.fillRect(boss.x + boss.w / 2 - 8, boss.y + boss.h / 2 - 8, 16, 16);
 
-  // عين الرصد التفاعلية
   ctx.fillStyle = '#ffffff';
   const eyeX = (boss.dir === 1) ? boss.x + boss.w - 14 : boss.x + 8;
   ctx.fillRect(eyeX, boss.y + 12, 8, 6);
 
-  // هالة مؤشر الضعف الذهبية
   if (boss.state === 'vulnerable') {
     ctx.strokeStyle = '#fbbf24';
     ctx.lineWidth = 2;
@@ -2341,7 +2608,6 @@ function renderBoss() {
 
   ctx.restore();
 
-  // 4. رسم الموجات الصدمية (Shockwaves)
   boss.shockwaves.forEach(sw => {
     ctx.save();
     ctx.strokeStyle = '#ff007f';
@@ -2349,23 +2615,20 @@ function renderBoss() {
     ctx.shadowColor = '#ff007f';
     ctx.shadowBlur = 15;
     ctx.beginPath();
-    ctx.arc(sw.x, 800 - 10, 16, Math.PI, 0, false);
+    ctx.arc(sw.x, 820 - 10, 16, Math.PI, 0, false);
     ctx.stroke();
     ctx.restore();
   });
 
-  // 5. رسم مخاطر الحلبة المؤقتة (Arena Hazards)
   boss.arenaHazards.forEach(h => {
     ctx.save();
     if (!h.active) {
-      // إنذار مسبق
       ctx.fillStyle = 'rgba(239, 68, 68, 0.2)';
       ctx.fillRect(h.x, h.y, h.w, h.h);
       ctx.strokeStyle = '#ef4444';
       ctx.setLineDash([8, 8]);
       ctx.strokeRect(h.x, h.y, h.w, h.h);
     } else {
-      // ليزر نشط
       ctx.fillStyle = 'rgba(239, 68, 68, 0.85)';
       ctx.shadowColor = '#f43f5e';
       ctx.shadowBlur = 20;
@@ -2396,7 +2659,6 @@ function render() {
 
   renderCityParallax(lvl.w, lvl.h);
 
-  // شبكة أرضية نيونية
   ctx.save();
   ctx.strokeStyle = (sys.dimFactor < 0.5) ? 'rgba(0, 240, 255, 0.08)' : 'rgba(255, 0, 127, 0.08)';
   ctx.lineWidth = 1;
@@ -2417,7 +2679,6 @@ function render() {
   }
   ctx.restore();
 
-  // شبح أفضل زمن
   if (CONFIG.ghost && activeReplayGhost.length > 0) {
     let targetSample = null;
     for (let i = 0; i < activeReplayGhost.length; i++) {
@@ -2435,7 +2696,6 @@ function render() {
     }
   }
 
-  // جدار المطاردة
   if (lvl.chaserSpeed > 0 && chaser.x > -1000) {
     ctx.save();
     const grad = ctx.createLinearGradient(chaser.x - 140, 0, chaser.x, 0);
@@ -2457,7 +2717,20 @@ function render() {
     ctx.restore();
   }
 
-  // رسم المنصات
+  // رسم نقاط الحفظ (Checkpoints)
+  if (lvl.checkpoints) {
+    lvl.checkpoints.forEach(cp => {
+      ctx.save();
+      ctx.fillStyle = cp.activated ? '#10b981' : '#64748b';
+      ctx.shadowColor = cp.activated ? '#10b981' : 'transparent';
+      ctx.shadowBlur = 12;
+      ctx.fillRect(cp.x - 8, cp.y - 20, 16, 20);
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(cp.x - 4, cp.y - 16, 8, 4);
+      ctx.restore();
+    });
+  }
+
   const allPlatforms = [...lvl.platforms, ...lvl.moving];
   allPlatforms.forEach(p => {
     if (p.x + p.w < cam.x - 40 || p.x > cam.x + viewW + 40 || p.y + p.h < cam.y - 40 || p.y > cam.y + viewH + 40) return;
@@ -2500,7 +2773,6 @@ function render() {
     ctx.restore();
   });
 
-  // رسم الأعداء العاديين
   if (lvl.enemies) {
     lvl.enemies.forEach(en => {
       if (!en.alive || (en.d !== 'BOTH' && en.d !== sys.dimension)) return;
@@ -2537,7 +2809,6 @@ function render() {
     });
   }
 
-  // رسم مقذوفات الأعداء
   enemyProjectiles.forEach(proj => {
     ctx.save();
     ctx.fillStyle = '#f43f5e';
@@ -2551,7 +2822,6 @@ function render() {
     ctx.restore();
   });
 
-  // رسم موجة الـ EMP
   if (hero.empWave.active) {
     ctx.save();
     ctx.strokeStyle = 'rgba(168, 85, 247, 0.75)';
@@ -2566,10 +2836,8 @@ function render() {
     ctx.restore();
   }
 
-  // رسم الزعيم الفائق
   renderBoss();
 
-  // الأفخاخ
   lvl.hazards.forEach(h => {
     if (h.d === 'BOTH' || h.d === sys.dimension) {
       ctx.save();
@@ -2590,7 +2858,6 @@ function render() {
     }
   });
 
-  // الشظايا
   lvl.shards.forEach(s => {
     if (!s.collected) {
       ctx.save();
@@ -2607,7 +2874,6 @@ function render() {
     }
   });
 
-  // بوابة النهاية
   const ex = lvl.exit;
   const opened = (sys.shards >= sys.totalShards) && (!boss.active);
   ctx.save();
@@ -2624,7 +2890,6 @@ function render() {
   }
   ctx.restore();
 
-  // أشباح الاندفاع
   hero.ghosts.forEach(g => {
     ctx.save();
     ctx.globalAlpha = g.alpha * 0.7;
@@ -2635,7 +2900,6 @@ function render() {
 
   renderPlayer();
 
-  // الجسيمات
   for (let i = 0; i < MAX_PARTICLES; i++) {
     const p = particles[i];
     if (p.active) {
@@ -2647,7 +2911,6 @@ function render() {
     }
   }
 
-  // وميض الشاشة
   if (sys.flash > 0) {
     ctx.fillStyle = `rgba(255, 255, 255, ${sys.flash})`;
     ctx.fillRect(cam.x, cam.y, viewW, viewH);
@@ -2658,7 +2921,7 @@ function render() {
 }
 
 // ==========================================
-// 10. الحلقة الرئيسية وتدفق اللعبة
+// 10. الحلقة المركزية ونظام التدفق
 // ==========================================
 let lastTime = performance.now();
 let accumulator = 0;
@@ -2689,11 +2952,11 @@ function evaluateStagePerformance(timeSeconds, deaths) {
 }
 
 function evaluateCampaignPerformance(totalTimeSeconds, totalDeaths) {
-  if (totalDeaths === 0 && totalTimeSeconds < 160) return { rank: 'S+', title: 'سيد الأبعاد المطلق (S+ Champion)!' };
-  if (totalDeaths <= 5 && totalTimeSeconds < 240) return { rank: 'S', title: 'خبير السايبر الأسطوري' };
-  if (totalDeaths <= 12 && totalTimeSeconds < 340) return { rank: 'A', title: 'عدّاء الحملة المحترف' };
-  if (totalDeaths <= 25) return { rank: 'B', title: 'بطل الصمود السيبراني' };
-  return { rank: 'C', title: 'ناجٍ من الفجوة الرقمية' };
+  if (totalDeaths === 0 && totalTimeSeconds < 500) return { rank: 'S+', title: 'سيد الأبعاد المطلق (Grandmaster S+)!' };
+  if (totalDeaths <= 10 && totalTimeSeconds < 750) return { rank: 'S', title: 'أسطورة السايبر الكبرى' };
+  if (totalDeaths <= 25 && totalTimeSeconds < 1100) return { rank: 'A', title: 'قاهر الفجوة الرقمية' };
+  if (totalDeaths <= 50) return { rank: 'B', title: 'بطل الصمود السيبراني' };
+  return { rank: 'C', title: 'ناجٍ من انهيار الواقع' };
 }
 
 function completeLevelSuccess() {
@@ -2726,13 +2989,13 @@ function finishCampaign() {
 
   document.getElementById('rank-slot').innerHTML = `
     <div class="rank-text">${finalEval.rank}</div>
-    <div class="reward-box">✨ تم فتح المكافأة الدائمة: وشاح المنشور النيوني الأسطوري (Prism Scarf)</div>
+    <div class="reward-box">✨ مبروك! أنهيت الـ 10 مراحل وفزت بوشاح المنشور النيوني الأسطوري</div>
   `;
-  document.getElementById('menu-title').innerText = "🏆 سحق حارس الواقع!";
+  document.getElementById('menu-title').innerText = "🏆 اكتمال الحملة السيبرانية الكبرى!";
   document.getElementById('menu-desc').innerText =
-    `تم إنهاء الحملة وهزيمة الزعيم في معركة الأبعاد الثلاثية!\n` +
-    `مجموع أزمنة المراحل: ${m}:${s}.${ms}\n` +
-    `إجمالي وفيات الحملة: ${sys.campaignTotalDeaths}\nالتقييم العام: رتبة ${finalEval.rank}`;
+    `تم إنهاء جميع المراحل الـ 10 وهزيمة زعماء الواقع والخلل!\n` +
+    `مجموع أزمنة الحملة: ${m}:${s}.${ms}\n` +
+    `إجمالي وفيات الحملة: ${sys.campaignTotalDeaths}\nالتقييم العام النهائي: رتبة ${finalEval.rank}`;
   document.getElementById('btn-start').innerText = 'بدء تحدٍ تنافسي جديد';
   document.getElementById('modal-menu').classList.remove('hidden');
 }
@@ -2808,7 +3071,7 @@ document.getElementById('btn-save-cfg').addEventListener('click', () => {
   modalSettings.classList.add('hidden');
 });
 
-// بدء حلقة المحرك
+// تشغيل حلقة المحرك
 requestAnimationFrame(engineLoop);
 </script>
 </body>
