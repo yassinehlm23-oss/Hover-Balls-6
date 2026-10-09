@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Shadow of the Glitch: Cyber Legacy — Combat Edition</title>
+  <title>Shadow of the Glitch: Cyber Legacy — Boss Encounter Edition</title>
   <style>
     :root {
       --primary: #00f0ff;
@@ -140,21 +140,38 @@
       transition: width 0.08s linear;
     }
 
-    /* شريط صحة الزعيم */
+    /* شريط صحة الزعيم المطور مع مؤشر المراحل */
     #boss-hud {
       position: fixed;
       top: calc(env(safe-area-inset-top, 14px) + 54px);
       left: 50%;
       transform: translateX(-50%);
-      width: min(88vw, 460px);
-      height: 12px;
-      background: rgba(10, 15, 29, 0.85);
-      border: 1px solid rgba(255, 0, 127, 0.6);
-      border-radius: 6px;
-      overflow: hidden;
+      width: min(88vw, 520px);
       display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
       z-index: 100;
-      box-shadow: 0 0 20px rgba(255, 0, 127, 0.35);
+    }
+    .boss-title-row {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-shadow: 0 0 10px rgba(255, 0, 127, 0.8);
+    }
+    .boss-bar-frame {
+      width: 100%;
+      height: 14px;
+      background: rgba(10, 15, 29, 0.88);
+      border: 1.5px solid rgba(255, 0, 127, 0.7);
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 0 24px rgba(255, 0, 127, 0.4);
     }
     #boss-hp-fill {
       width: 100%;
@@ -162,8 +179,18 @@
       background: linear-gradient(90deg, #ff0055, #ff007f);
       transition: width 0.12s linear;
     }
+    .phase-marker {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: rgba(255, 255, 255, 0.6);
+      z-index: 2;
+    }
+    .phase-marker.p60 { left: 60%; }
+    .phase-marker.p25 { left: 25%; }
 
-    /* عناصر التحكم اللمسية السينمائية */
+    /* عناصر التحكم اللمسية */
     #touch-bar {
       position: fixed;
       bottom: env(safe-area-inset-bottom, 16px);
@@ -274,6 +301,16 @@
       text-shadow: 0 0 30px rgba(245, 158, 11, 0.8);
       margin-bottom: 6px;
     }
+    .reward-box {
+      background: rgba(168, 85, 247, 0.12);
+      border: 1px solid rgba(168, 85, 247, 0.5);
+      border-radius: 12px;
+      padding: 10px 20px;
+      margin-bottom: 20px;
+      color: #e9d5ff;
+      font-size: 13px;
+      font-weight: 700;
+    }
     .btn-stack {
       display: flex;
       flex-direction: column;
@@ -355,9 +392,17 @@
   </div>
 </div>
 
-<!-- شريط صحة الزعيم -->
+<!-- شريط صحة الزعيم مع المراحل -->
 <div id="boss-hud">
-  <div id="boss-hp-fill"></div>
+  <div class="boss-title-row">
+    <span id="boss-name-label">GUARDIAN OF REALITY</span>
+    <span id="boss-phase-label">المرحلة 1 / 3</span>
+  </div>
+  <div class="boss-bar-frame">
+    <div class="phase-marker p60"></div>
+    <div class="phase-marker p25"></div>
+    <div id="boss-hp-fill"></div>
+  </div>
 </div>
 
 <!-- أدوات اللمس -->
@@ -380,9 +425,9 @@
   <div id="rank-slot"></div>
   <h1 id="menu-title">SHADOW OF THE GLITCH</h1>
   <p id="menu-desc">
-    طبعة القتال والقدرات السيبرانية:
-    استخدم <b>F</b> (أو ATK) لهجوم النصل السريع، <b>Q</b> (أو EMP) لإطلاق موجة الخلل الإشعاعية،
-    و<b>SHIFT</b> للتبديل بين العالمين، و<b>DASH</b> للاندفاع الهوائي المحسوب!
+    مواجهة الزعيم الكبرى: حارس الواقع بثلاث مراحل تصاعدية!
+    راقب إشارات الهجوم التحذيرية، بدّل الأبعاد لتفادي موجات البلازما،
+    واستغل نوافذ الضعف الذهبية لهزيمته ونيل وشاح النصر الأسطوري.
   </p>
   <div class="btn-stack">
     <button class="action-btn" id="btn-start">دخول العالم</button>
@@ -437,12 +482,12 @@
 
 <script>
 /**
- * Shadow of the Glitch: Cyber Legacy — Combat & Abilities Engine
- * محرك قتالي كامل بنظام طاقة وهجوم قريب وموجات EMP وأعداء بروجيكتايل متطورين
+ * Shadow of the Glitch: Cyber Legacy — Boss Encounter Edition
+ * مواجهة زعيم متقدمة بـ 3 مراحل، إشارات تلغرافية، موجات أبعاد، وأخطار حلبة مؤقتة
  */
 
 // ==========================================
-// 1. نظام الحفظ وإدارة الإعدادات
+// 1. نظام الحفظ وإدارة الإعدادات والمكافآت
 // ==========================================
 const CONFIG = {
   lowFX: false,
@@ -454,7 +499,7 @@ const CONFIG = {
   touchSize: 60
 };
 
-const STORAGE_KEY = 'SOTG_COMBAT_SAVE_V6';
+const STORAGE_KEY = 'SOTG_BOSS_SAVE_V7';
 
 class StorageManager {
   static load() {
@@ -471,6 +516,7 @@ class StorageManager {
       bestSplits: {},
       bestRanks: {},
       ghostTrails: {},
+      unlockedPrismScarf: false,
       config: CONFIG
     };
   }
@@ -486,7 +532,7 @@ class StorageManager {
 let SAVE_STATE = StorageManager.load();
 
 // ==========================================
-// 2. محرك الصوت الإجرائي المستقل مع قدرات القتال
+// 2. محرك الصوت الإجرائي
 // ==========================================
 class SoundFX {
   constructor() {
@@ -494,6 +540,7 @@ class SoundFX {
     this.bgmTimer = null;
     this.step = 0;
     this.notes = [110, 110, 130.81, 98, 87.31, 98, 110, 146.83];
+    this.bossNotes = [73.42, 73.42, 87.31, 73.42, 110, 98, 65.41, 82.41];
   }
 
   init() {
@@ -516,9 +563,12 @@ class SoundFX {
         const t = this.ctx.currentTime;
         const osc = this.ctx.createOscillator();
         const g = this.ctx.createGain();
+        const isBossFight = (sys.level === 2 && boss.active);
+        const melody = isBossFight ? this.bossNotes : this.notes;
+
         osc.type = (sys.dimFactor < 0.5) ? 'sine' : 'sawtooth';
-        osc.frequency.setValueAtTime(this.notes[this.step % this.notes.length], t);
-        const vol = (sys.dimFactor < 0.5) ? 0.03 : 0.018;
+        osc.frequency.setValueAtTime(melody[this.step % melody.length], t);
+        const vol = isBossFight ? 0.045 : ((sys.dimFactor < 0.5) ? 0.03 : 0.018);
         g.gain.setValueAtTime(vol, t);
         g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
         osc.connect(g);
@@ -588,6 +638,27 @@ class SoundFX {
         g.gain.setValueAtTime(0.4, t);
         g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
         osc.start(t); osc.stop(t + 0.35);
+      } else if (name === 'boss_telegraph') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(220, t);
+        osc.frequency.linearRampToValueAtTime(660, t + 0.5);
+        g.gain.setValueAtTime(0.25, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+        osc.start(t); osc.stop(t + 0.5);
+      } else if (name === 'boss_phase') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(90, t);
+        osc.frequency.exponentialRampToValueAtTime(400, t + 0.8);
+        g.gain.setValueAtTime(0.5, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
+        osc.start(t); osc.stop(t + 0.8);
+      } else if (name === 'boss_slam') {
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(180, t);
+        osc.frequency.exponentialRampToValueAtTime(25, t + 0.45);
+        g.gain.setValueAtTime(0.55, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+        osc.start(t); osc.stop(t + 0.45);
       } else if (name === 'turret_shot') {
         osc.type = 'square';
         osc.frequency.setValueAtTime(420, t);
@@ -679,10 +750,9 @@ const CONSTANTS = {
   coyoteMax: 0.1,
   jumpBufferMax: 0.12,
   subStepDist: 4.0,
-  // ثوابت القدرات والقتال
   maxHp: 3,
   maxEnergy: 100,
-  energyRegenRate: 18.0, // نقطة في الثانية
+  energyRegenRate: 18.0,
   empEnergyCost: 40,
   attackCooldown: 0.28,
   attackDuration: 0.14,
@@ -732,7 +802,7 @@ const hero = {
   facing: 1,
   canDoubleJump: true,
   canDash: true,
-  airDashUsed: false, // اندفاع جوي واحد قبل الهبوط
+  airDashUsed: false,
   dashCooldown: 0,
   isDashing: false,
   dashTimer: 0,
@@ -740,11 +810,9 @@ const hero = {
   jumpBufferTimer: 0,
   scaleX: 1, scaleY: 1,
   runCycle: 0,
-  // هجوم السيف القريب
   isAttacking: false,
   attackTimer: 0,
   attackCooldownTimer: 0,
-  // نبضة الـ EMP
   empWave: { active: false, x: 0, y: 0, radius: 0, maxRadius: 130 },
   scarf: Array.from({ length: 8 }, () => ({ x: 0, y: 0 })),
   ghosts: []
@@ -755,26 +823,28 @@ const chaser = {
   speed: 1.25
 };
 
+// كائن الزعيم المطور متعدد المراحل
 const boss = {
   active: false,
   x: 0, y: 0,
-  w: 52, h: 64,
+  w: 58, h: 68,
   hp: 100, maxHp: 100,
-  phase: 1,
-  state: 'patrol',
+  phase: 1, // 1: Patrol/Charge, 2: Plasma/Shift, 3: Hazard/Slam
+  state: 'patrol', // patrol, telegraph, charge, vulnerable, slam_prep, slam_fall
   timer: 0,
   dir: 1,
-  invulnTimer: 0
+  invulnTimer: 0,
+  telegraphTimer: 0,
+  attackDim: 'BOTH', // البعد المرتبط بهجوم الزعيم
+  shockwaves: [], // موجات صدمية أرضية
+  arenaHazards: [] // مخاطر الحلبة المؤقتة في المرحلة 3
 };
 
-// مقذوفات الأعداء النشطة
 let enemyProjectiles = [];
-
 let currentGhostRecord = [];
 let activeReplayGhost = [];
 
-// مجمع الجسيمات
-const MAX_PARTICLES = 250;
+const MAX_PARTICLES = 280;
 const particles = Array.from({ length: MAX_PARTICLES }, () => ({
   active: false,
   x: 0, y: 0,
@@ -806,17 +876,8 @@ function emitParticles(x, y, color, count = 10, speedMul = 1) {
   }
 }
 
-// مطر الكود الرقمي
-const RAIN_COUNT = 50;
-const digitalRain = Array.from({ length: RAIN_COUNT }, () => ({
-  x: Math.random() * 3200,
-  y: Math.random() * 1000,
-  speed: Math.random() * 4 + 3,
-  char: String.fromCharCode(0x30A0 + Math.floor(Math.random() * 96))
-}));
-
 // ==========================================
-// 5. تصميم المراحل مع أعداء متنوعين
+// 5. قوالب المراحل
 // ==========================================
 const LEVEL_TEMPLATES = [
   {
@@ -846,9 +907,7 @@ const LEVEL_TEMPLATES = [
       { x: 1480, y: 636, w: 70, h: 24, d: 'REAL' }
     ],
     enemies: [
-      // دورية عادي
       { type: 'patrol', x: 1250, y: 800, w: 26, h: 26, minX: 1120, maxX: 1400, spd: 2.0, dir: 1, alive: true, hp: 1, maxHp: 1, d: 'BOTH' },
-      // مطلق مقذوفات
       { type: 'turret', x: 2060, y: 426, w: 30, h: 34, alive: true, hp: 2, maxHp: 2, shootCooldown: 1.8, timer: 0.5, d: 'REAL' }
     ],
     shards: [
@@ -887,11 +946,8 @@ const LEVEL_TEMPLATES = [
       { x: 1920, y: 566, w: 70, h: 24, d: 'REAL' }
     ],
     enemies: [
-      // مطارد فائق السرعة
       { type: 'stalker', x: 740, y: 660, w: 26, h: 26, minX: 680, maxX: 840, spd: 3.4, dir: 1, alive: true, hp: 2, maxHp: 2, d: 'GLITCH' },
-      // مطلق مقذوفات
       { type: 'turret', x: 1420, y: 556, w: 30, h: 34, alive: true, hp: 2, maxHp: 2, shootCooldown: 1.6, timer: 1.0, d: 'REAL' },
-      // دورية
       { type: 'patrol', x: 2200, y: 450, w: 26, h: 26, minX: 2150, maxX: 2280, spd: 2.2, dir: 1, alive: true, hp: 1, maxHp: 1, d: 'GLITCH' }
     ],
     shards: [
@@ -902,30 +958,31 @@ const LEVEL_TEMPLATES = [
     boss: null
   },
   {
-    name: 'حلبة حارس الواقع',
+    name: 'حلبة حارس الواقع (المواجهة النهائية)',
     w: 2400, h: 900,
     spawn: { x: 150, y: 720 },
-    exit: { x: 2200, y: 720 },
+    exit: { x: 2220, y: 720 },
     chaserSpeed: 0,
     platforms: [
       { x: 0, y: 800, w: 2400, h: 100, d: 'BOTH' },
-      { x: 0, y: 0, w: 40, h: 800, d: 'BOTH' },
-      { x: 2360, y: 0, w: 40, h: 800, d: 'BOTH' },
-      { x: 300, y: 640, w: 200, h: 24, d: 'REAL' },
-      { x: 650, y: 520, w: 220, h: 24, d: 'GLITCH' },
-      { x: 1050, y: 420, w: 300, h: 24, d: 'BOTH' },
-      { x: 1530, y: 520, w: 220, h: 24, d: 'GLITCH' },
-      { x: 1900, y: 640, w: 200, h: 24, d: 'REAL' }
+      { x: 0, y: 0, w: 50, h: 800, d: 'BOTH' },
+      { x: 2350, y: 0, w: 50, h: 800, d: 'BOTH' },
+      // منصات هوائية تكتيكية
+      { x: 300, y: 640, w: 220, h: 24, d: 'REAL' },
+      { x: 660, y: 520, w: 240, h: 24, d: 'GLITCH' },
+      { x: 1080, y: 410, w: 260, h: 24, d: 'BOTH' },
+      { x: 1520, y: 520, w: 240, h: 24, d: 'GLITCH' },
+      { x: 1900, y: 640, w: 220, h: 24, d: 'REAL' }
     ],
     moving: [],
     hazards: [],
     enemies: [],
     shards: [
-      { x: 400, y: 590, collected: false },
-      { x: 1200, y: 360, collected: false },
-      { x: 2000, y: 590, collected: false }
+      { x: 410, y: 590, collected: false },
+      { x: 1210, y: 350, collected: false },
+      { x: 2010, y: 590, collected: false }
     ],
-    boss: { spawnX: 1200, spawnY: 736 }
+    boss: { spawnX: 1300, spawnY: 732 }
   }
 ];
 
@@ -936,7 +993,7 @@ function cloneLevelData(idx) {
 }
 
 // ==========================================
-// 6. نظام الإدخال المتعدد المتزامن (Touch & Key)
+// 6. نظام الإدخال المتزامن
 // ==========================================
 const input = {
   left: false,
@@ -1044,7 +1101,7 @@ window.addEventListener('blur', () => {
 });
 
 // ==========================================
-// 7. النواة الفيزيائية والقدرات والقتال
+// 7. النواة الفيزيائية وتصادمات الحلبة
 // ==========================================
 function checkAABB(a, b) {
   return a.x < b.x + b.w &&
@@ -1141,7 +1198,6 @@ function safeDimensionShift() {
   }
 }
 
-// اندفاع هوائي متوازن (مرة واحدة في الهواء)
 function triggerDash() {
   if (hero.isDashing || sys.isDead || hero.dashCooldown > 0) return;
   if (!hero.isGrounded && hero.airDashUsed) return;
@@ -1162,7 +1218,6 @@ function triggerDash() {
   emitParticles(hero.x + hero.w / 2, hero.y + hero.h / 2, '#f59e0b', 16);
 }
 
-// هجوم السيف السيبراني القريب (Cyber Slash)
 function triggerAttack() {
   if (hero.isAttacking || hero.attackCooldownTimer > 0 || sys.isDead) return;
   hero.isAttacking = true;
@@ -1178,7 +1233,6 @@ function triggerAttack() {
     h: CONSTANTS.attackRangeY
   };
 
-  // فحص إصابة الأعداء
   const lvl = currentLevelData;
   if (lvl && lvl.enemies) {
     lvl.enemies.forEach(en => {
@@ -1190,7 +1244,6 @@ function triggerAttack() {
         sys.shake = CONFIG.shake ? 8 : 0;
         emitParticles(en.x + en.w / 2, en.y + en.h / 2, '#f43f5e', 18);
         hero.energy = Math.min(CONSTANTS.maxEnergy, hero.energy + 10);
-
         if (en.hp <= 0) {
           en.alive = false;
           emitParticles(en.x + en.w / 2, en.y + en.h / 2, '#00f0ff', 24);
@@ -1199,7 +1252,6 @@ function triggerAttack() {
     });
   }
 
-  // تدمير مقذوفات الأعداء بالسيف
   enemyProjectiles = enemyProjectiles.filter(proj => {
     if (checkAABB(slashBox, { x: proj.x - 6, y: proj.y - 6, w: 12, h: 12 })) {
       emitParticles(proj.x, proj.y, '#f59e0b', 10);
@@ -1208,13 +1260,12 @@ function triggerAttack() {
     return true;
   });
 
-  // ضرب الزعيم بالسيف
-  if (boss.active && checkAABB(slashBox, boss) && boss.invulnTimer <= 0) {
-    damageBoss(20);
+  // إصابة الزعيم بالسيف في نافذة الضعف
+  if (boss.active && checkAABB(slashBox, boss)) {
+    damageBoss(15);
   }
 }
 
-// نبضة الخلل الإشعاعية (EMP Pulse)
 function triggerEMP() {
   if (hero.energy < CONSTANTS.empEnergyCost || hero.empWave.active || sys.isDead) return;
   hero.energy -= CONSTANTS.empEnergyCost;
@@ -1226,7 +1277,6 @@ function triggerEMP() {
   triggerHaptic(60);
   sys.shake = CONFIG.shake ? 12 : 0;
 
-  // مسح وتدمير مقذوفات الأعداء في المجال
   enemyProjectiles = enemyProjectiles.filter(proj => {
     const d = Math.hypot(proj.x - hero.empWave.x, proj.y - hero.empWave.y);
     if (d < CONSTANTS.empWave.maxRadius) {
@@ -1236,7 +1286,6 @@ function triggerEMP() {
     return true;
   });
 
-  // إلحاق ضرر واسع بالأعداء في النطاق
   const lvl = currentLevelData;
   if (lvl && lvl.enemies) {
     lvl.enemies.forEach(en => {
@@ -1250,35 +1299,84 @@ function triggerEMP() {
     });
   }
 
-  // صعق وتضرر الزعيم إذا كان في النطاق
   if (boss.active) {
     const d = Math.hypot((boss.x + boss.w / 2) - hero.empWave.x, (boss.y + boss.h / 2) - hero.empWave.y);
-    if (d < CONSTANTS.empWave.maxRadius && boss.invulnTimer <= 0) {
-      damageBoss(25);
+    if (d < CONSTANTS.empWave.maxRadius) {
+      damageBoss(20);
     }
   }
 }
 
+// نظام إصابة الزعيم ونوافذ الضعف والارتداد
 function damageBoss(amount) {
+  if (!boss.active || boss.invulnTimer > 0) return;
+
+  // الزعيم قابل للإصابة فقط في حالة الضعف الذهبية أو بعد إفشال هجومه
+  if (boss.state !== 'vulnerable') {
+    audio.play('shift_denied');
+    emitParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, '#64748b', 8);
+    return;
+  }
+
   boss.hp -= amount;
-  boss.invulnTimer = 0.6;
+  boss.invulnTimer = 0.65;
   audio.play('hit');
   triggerHaptic(60);
   sys.shake = CONFIG.shake ? 12 : 0;
-  emitParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, '#ff007f', 28, 2);
-  hero.vy = CONSTANTS.jumpForce * 0.75;
+  emitParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, '#fbbf24', 28, 2);
 
-  if (boss.hp <= 50 && boss.phase === 1) boss.phase = 2;
-  document.getElementById('boss-hp-fill').style.width = Math.max(0, (boss.hp / boss.maxHp) * 100) + '%';
+  // ارتداد هوائي ناعم للبطل لمنع التداخل
+  hero.vy = CONSTANTS.jumpForce * 0.78;
+  hero.vx = -hero.facing * 4.5;
+
+  // تحديث المرحلة القتالية بحسب الصحة
+  const hpPct = (boss.hp / boss.maxHp) * 100;
+  if (hpPct <= 25 && boss.phase < 3) {
+    boss.phase = 3;
+    onBossPhaseTransition(3);
+  } else if (hpPct <= 60 && boss.phase < 2) {
+    boss.phase = 2;
+    onBossPhaseTransition(2);
+  }
+
+  updateBossHUD();
 
   if (boss.hp <= 0) {
-    boss.active = false;
-    document.getElementById('boss-hud').style.display = 'none';
-    emitParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, '#00f0ff', 50, 3);
+    defeatBoss();
   }
 }
 
-// نظام إصابة اللاعب مع المناعة المؤقتة
+function onBossPhaseTransition(newPhase) {
+  audio.play('boss_phase');
+  sys.shake = CONFIG.shake ? 18 : 0;
+  sys.flash = 0.35;
+  emitParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, newPhase === 3 ? '#ff007f' : '#a855f7', 45, 3);
+  boss.state = 'vulnerable';
+  boss.timer = 0;
+  updateBossHUD();
+}
+
+function updateBossHUD() {
+  const hpPct = Math.max(0, (boss.hp / boss.maxHp) * 100);
+  document.getElementById('boss-hp-fill').style.width = hpPct + '%';
+  document.getElementById('boss-phase-label').innerText = `المرحلة ${boss.phase} / 3`;
+}
+
+function defeatBoss() {
+  boss.active = false;
+  boss.shockwaves = [];
+  boss.arenaHazards = [];
+  document.getElementById('boss-hud').style.display = 'none';
+  audio.play('boss_slam');
+  sys.shake = CONFIG.shake ? 24 : 0;
+  emitParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, '#00f0ff', 65, 3.5);
+  emitParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, '#ff007f', 65, 3.5);
+
+  // فتح المكافأة الدائمة
+  SAVE_STATE.unlockedPrismScarf = true;
+  StorageManager.save(SAVE_STATE);
+}
+
 function hurtHero(amount = 1) {
   if (sys.invulnTimer > 0 || sys.isDead) return;
   hero.hp -= amount;
@@ -1293,19 +1391,24 @@ function hurtHero(amount = 1) {
   }
 }
 
+// إعادة ضبط الزعيم بالكامل عند بدء المرحلة أو الإعادة
 function resetBossState(lvl) {
+  boss.shockwaves = [];
+  boss.arenaHazards = [];
   if (lvl.boss) {
     boss.active = true;
     boss.hp = boss.maxHp;
     boss.phase = 1;
     boss.state = 'patrol';
     boss.timer = 0;
+    boss.telegraphTimer = 0;
     boss.dir = 1;
     boss.invulnTimer = 0;
+    boss.attackDim = 'BOTH';
     boss.x = lvl.boss.spawnX;
     boss.y = lvl.boss.spawnY;
-    document.getElementById('boss-hud').style.display = 'block';
-    document.getElementById('boss-hp-fill').style.width = '100%';
+    document.getElementById('boss-hud').style.display = 'flex';
+    updateBossHUD();
   } else {
     boss.active = false;
     document.getElementById('boss-hud').style.display = 'none';
@@ -1425,9 +1528,202 @@ function restartCurrentLevel() {
 }
 
 // ==========================================
-// 8. التحديث الفيزيائي الثابت 60Hz
+// 8. منطق الزعيم والفيزياء الثابتة 60Hz
 // ==========================================
 let ghostSampleTimer = 0;
+
+function updateBossBehavior(dt) {
+  if (!boss.active) return;
+  if (boss.invulnTimer > 0) boss.invulnTimer -= dt;
+  boss.timer += dt;
+
+  const arenaLeft = 80;
+  const arenaRight = 2300 - boss.w;
+  const groundY = 800 - boss.h;
+
+  // تحديث المخاطر المؤقتة في الحلبة (المرحلة 3)
+  boss.arenaHazards.forEach(h => {
+    h.timer += dt;
+    // تفعيل الخطر بعد انتهاء فترة الإنذار (Telegraph)
+    if (h.timer >= h.delay && !h.active) {
+      h.active = true;
+      audio.play('boss_slam');
+      sys.shake = CONFIG.shake ? 8 : 0;
+    }
+    // إلحاق الضرر باللاعب إذا كان في منطقة الخطر النشطة
+    if (h.active && h.timer < h.delay + h.duration) {
+      if (checkAABB(hero, h)) {
+        hurtHero(1);
+      }
+    }
+  });
+  boss.arenaHazards = boss.arenaHazards.filter(h => h.timer < h.delay + h.duration);
+
+  // تحديث الموجات الصدمية
+  boss.shockwaves.forEach(sw => {
+    sw.x += sw.vx * 60 * dt;
+    sw.life -= dt;
+    // تلحق ضرراً فقط إذا كان اللاعب في نفس البعد أو كانت الموجة لكلا البعدين
+    if (sw.dim === 'BOTH' || sw.dim === sys.dimension) {
+      if (checkAABB(hero, { x: sw.x - 14, y: groundY - 10, w: 28, h: 26 })) {
+        hurtHero(1);
+      }
+    }
+  });
+  boss.shockwaves = boss.shockwaves.filter(sw => sw.life > 0);
+
+  // نمط المرحلة 1 (100% - 60%): دوريات + تلغراف + اندفاع
+  if (boss.phase === 1) {
+    if (boss.state === 'patrol') {
+      boss.x += (boss.dir * 2.8) * 60 * dt;
+      if (boss.x > arenaRight - 200) { boss.x = arenaRight - 200; boss.dir = -1; }
+      if (boss.x < arenaLeft + 200) { boss.x = arenaLeft + 200; boss.dir = 1; }
+
+      if (boss.timer > 3.0) {
+        boss.state = 'telegraph';
+        boss.timer = 0;
+        boss.dir = (hero.x < boss.x) ? -1 : 1;
+        audio.play('boss_telegraph');
+      }
+    } else if (boss.state === 'telegraph') {
+      if (boss.timer > 0.7) {
+        boss.state = 'charge';
+        boss.timer = 0;
+        audio.play('dash');
+      }
+    } else if (boss.state === 'charge') {
+      boss.x += (boss.dir * 8.5) * 60 * dt;
+      if (boss.x > arenaRight || boss.x < arenaLeft || boss.timer > 1.2) {
+        boss.state = 'vulnerable';
+        boss.timer = 0;
+        audio.play('boss_slam');
+        sys.shake = CONFIG.shake ? 8 : 0;
+      }
+    } else if (boss.state === 'vulnerable') {
+      if (boss.timer > 2.0) {
+        boss.state = 'patrol';
+        boss.timer = 0;
+      }
+    }
+  }
+
+  // نمط المرحلة 2 (60% - 25%): سرعة أعلى + مقذوفات + موجات أبعاد
+  else if (boss.phase === 2) {
+    if (boss.state === 'patrol') {
+      boss.x += (boss.dir * 3.8) * 60 * dt;
+      if (boss.x > arenaRight - 200) { boss.x = arenaRight - 200; boss.dir = -1; }
+      if (boss.x < arenaLeft + 200) { boss.x = arenaLeft + 200; boss.dir = 1; }
+
+      // إطلاق مقذوفات دورية
+      if (boss.timer > 1.8 && boss.timer < 1.85) {
+        const pDir = (hero.x > boss.x) ? 1 : -1;
+        enemyProjectiles.push(
+          { x: boss.x + boss.w / 2, y: boss.y + 20, vx: pDir * 6.2, life: 3.2 },
+          { x: boss.x + boss.w / 2, y: boss.y + 40, vx: pDir * 5.5, life: 3.2 }
+        );
+        audio.play('turret_shot');
+      }
+
+      if (boss.timer > 3.2) {
+        boss.state = 'telegraph';
+        boss.timer = 0;
+        boss.dir = (hero.x < boss.x) ? -1 : 1;
+        boss.attackDim = (Math.random() > 0.5) ? 'REAL' : 'GLITCH';
+        audio.play('boss_telegraph');
+      }
+    } else if (boss.state === 'telegraph') {
+      if (boss.timer > 0.6) {
+        boss.state = 'charge';
+        boss.timer = 0;
+        audio.play('dash');
+      }
+    } else if (boss.state === 'charge') {
+      boss.x += (boss.dir * 10.5) * 60 * dt;
+      if (boss.x > arenaRight || boss.x < arenaLeft || boss.timer > 1.0) {
+        boss.state = 'vulnerable';
+        boss.timer = 0;
+        audio.play('boss_slam');
+        sys.shake = CONFIG.shake ? 9 : 0;
+      }
+    } else if (boss.state === 'vulnerable') {
+      if (boss.timer > 1.8) {
+        boss.state = 'patrol';
+        boss.timer = 0;
+      }
+    }
+  }
+
+  // نمط المرحلة 3 (< 25%): هبوط ساحق (Slam) + مخاطر حلبة + موجات أرضية
+  else if (boss.phase === 3) {
+    if (boss.state === 'patrol') {
+      boss.x += (boss.dir * 4.4) * 60 * dt;
+      if (boss.x > arenaRight - 200) { boss.x = arenaRight - 200; boss.dir = -1; }
+      if (boss.x < arenaLeft + 200) { boss.x = arenaLeft + 200; boss.dir = 1; }
+
+      if (boss.timer > 2.6) {
+        boss.state = 'slam_prep';
+        boss.timer = 0;
+        audio.play('boss_telegraph');
+
+        // خلق مناطق خطر تحذيرية في منتصف الحلبة
+        boss.arenaHazards.push(
+          { x: 900, y: 780, w: 600, h: 20, timer: 0, delay: 0.9, duration: 2.2, active: false }
+        );
+      }
+    } else if (boss.state === 'slam_prep') {
+      // يرتفع في الهواء فوق موقع اللاعب
+      boss.y -= 7.5 * 60 * dt;
+      if (boss.y < 350 || boss.timer > 0.8) {
+        boss.x = Math.max(arenaLeft, Math.min(arenaRight, hero.x - boss.w / 2));
+        boss.state = 'slam_fall';
+        boss.timer = 0;
+      }
+    } else if (boss.state === 'slam_fall') {
+      boss.y += 18.0 * 60 * dt;
+      if (boss.y >= groundY) {
+        boss.y = groundY;
+        boss.state = 'vulnerable';
+        boss.timer = 0;
+        audio.play('boss_slam');
+        sys.shake = CONFIG.shake ? 18 : 0;
+        sys.flash = 0.3;
+
+        // إطلاق موجتين صدميتين في كلا الاتجاهين
+        boss.shockwaves.push(
+          { x: boss.x - 10, vx: -6.5, life: 1.8, dim: 'BOTH' },
+          { x: boss.x + boss.w + 10, vx: 6.5, life: 1.8, dim: 'BOTH' }
+        );
+      }
+    } else if (boss.state === 'vulnerable') {
+      if (boss.timer > 2.2) {
+        boss.state = 'patrol';
+        boss.timer = 0;
+      }
+    }
+  }
+
+  // ثبات حدود الحلبة للزعيم
+  boss.x = Math.max(arenaLeft, Math.min(arenaRight, boss.x));
+  if (boss.state !== 'slam_prep' && boss.state !== 'slam_fall') {
+    boss.y = groundY;
+  }
+
+  // اصطدام اللاعب بجسم الزعيم
+  if (checkAABB(hero, boss)) {
+    if (boss.state === 'vulnerable') {
+      // إلحاق ضرر بالزعيم عند القفز عليه في نافذة الضعف
+      if (hero.vy > 1.5 || hero.isDashing) {
+        damageBoss(20);
+      }
+    } else {
+      // هجمات البعد: إذا كان الهجوم مخصصاً لبعد، واللاعب في البعد الآخر فلا يتضرر
+      const ignoresDamage = (boss.attackDim !== 'BOTH' && boss.attackDim !== sys.dimension);
+      if (!ignoresDamage) {
+        hurtHero(1);
+      }
+    }
+  }
+}
 
 function fixedPhysics(dt) {
   if (sys.isDead) return;
@@ -1439,16 +1735,13 @@ function fixedPhysics(dt) {
   sys.activeLevelTime += dt;
   sys.campaignTotalTime += dt;
 
-  // شحن الطاقة التلقائي
   hero.energy = Math.min(CONSTANTS.maxEnergy, hero.energy + CONSTANTS.energyRegenRate * dt);
   if (hero.dashCooldown > 0) hero.dashCooldown -= dt;
   if (hero.attackCooldownTimer > 0) hero.attackCooldownTimer -= dt;
 
-  // انتقال بعدي ناعم
   const targetDimFactor = (sys.dimension === 'REAL') ? 0.0 : 1.0;
   sys.dimFactor += (targetDimFactor - sys.dimFactor) * 0.12;
 
-  // تسجيل الشبح
   ghostSampleTimer += dt;
   if (ghostSampleTimer >= 0.03) {
     ghostSampleTimer = 0;
@@ -1461,7 +1754,6 @@ function fixedPhysics(dt) {
     });
   }
 
-  // فارق التوقيت
   if (SAVE_STATE.bestTimes[sys.level]) {
     const deltaEl = document.getElementById('hud-delta');
     const bestT = SAVE_STATE.bestTimes[sys.level] / 1000;
@@ -1475,7 +1767,6 @@ function fixedPhysics(dt) {
     }
   }
 
-  // التباطؤ الحرج
   if (sys.slowMoTimer > 0) {
     sys.slowMoTimer -= dt;
     sys.timeScale = 0.5;
@@ -1484,7 +1775,6 @@ function fixedPhysics(dt) {
   }
   const effDt = dt * sys.timeScale;
 
-  // أوامر القتال والقدرات
   if (input.shiftTrigger) {
     safeDimensionShift();
     input.shiftTrigger = false;
@@ -1502,13 +1792,11 @@ function fixedPhysics(dt) {
     input.empTrigger = false;
   }
 
-  // مدة وتأثير هجوم السيف
   if (hero.isAttacking) {
     hero.attackTimer -= effDt;
     if (hero.attackTimer <= 0) hero.isAttacking = false;
   }
 
-  // انتشار موجة الـ EMP
   if (hero.empWave.active) {
     hero.empWave.radius += 380 * effDt;
     if (hero.empWave.radius >= hero.empWave.maxRadius) {
@@ -1516,7 +1804,6 @@ function fixedPhysics(dt) {
     }
   }
 
-  // جدار المطاردة
   if (lvl.chaserSpeed > 0) {
     chaser.x += lvl.chaserSpeed * 60 * effDt;
     if (hero.x < chaser.x) {
@@ -1525,7 +1812,6 @@ function fixedPhysics(dt) {
     }
   }
 
-  // تحريك المنصات
   if (lvl.moving) {
     lvl.moving.forEach(m => {
       m.x += (m.spd * m.dir) * 60 * effDt;
@@ -1534,7 +1820,10 @@ function fixedPhysics(dt) {
     });
   }
 
-  // سلوك الأعداء المتقدم (Patrol, Stalker, Turret)
+  // تحديث سلوك الزعيم القتالي
+  updateBossBehavior(effDt);
+
+  // تحديث الأعداء العاديين
   if (lvl.enemies) {
     for (let i = 0; i < lvl.enemies.length; i++) {
       const en = lvl.enemies[i];
@@ -1546,7 +1835,6 @@ function fixedPhysics(dt) {
         if (en.x > en.maxX) { en.x = en.maxX; en.dir = -1; }
         if (en.x < en.minX) { en.x = en.minX; en.dir = 1; }
       } else if (en.type === 'stalker') {
-        // مطارد يلاحق اللاعب إذا كان قريباً
         const dist = hero.x - en.x;
         if (Math.abs(dist) < 260) {
           en.dir = dist > 0 ? 1 : -1;
@@ -1555,7 +1843,6 @@ function fixedPhysics(dt) {
         if (en.x > en.maxX) en.x = en.maxX;
         if (en.x < en.minX) en.x = en.minX;
       } else if (en.type === 'turret') {
-        // مطلق مقذوفات ذكي
         en.timer += effDt;
         if (en.timer >= en.shootCooldown) {
           en.timer = 0;
@@ -1570,7 +1857,6 @@ function fixedPhysics(dt) {
         }
       }
 
-      // تصادم البطل بالعدو
       if (checkAABB(hero, en)) {
         if (hero.vy > 1.2 || hero.isDashing) {
           en.hp -= 1;
@@ -1594,13 +1880,11 @@ function fixedPhysics(dt) {
     proj.x += proj.vx * 60 * effDt;
     proj.life -= effDt;
 
-    // اصطدام المقذوف بالبطل
     if (checkAABB(hero, { x: proj.x - 6, y: proj.y - 6, w: 12, h: 12 })) {
       hurtHero(1);
       return false;
     }
 
-    // اصطدام المقذوف بالجدران
     const solids = getActiveSolids();
     for (let s of solids) {
       if (checkAABB({ x: proj.x - 4, y: proj.y - 4, w: 8, h: 8 }, s)) {
@@ -1612,48 +1896,7 @@ function fixedPhysics(dt) {
     return proj.life > 0;
   });
 
-  // الزعيم
-  if (boss.active) {
-    if (boss.invulnTimer > 0) boss.invulnTimer -= effDt;
-    boss.timer += effDt;
-
-    if (boss.state === 'patrol') {
-      boss.x += (boss.dir * 2.6 * (boss.phase === 2 ? 1.35 : 1.0)) * 60 * effDt;
-      if (boss.x > 1800) { boss.x = 1800; boss.dir = -1; }
-      if (boss.x < 400) { boss.x = 400; boss.dir = 1; }
-      if (boss.timer > 3.2) {
-        boss.state = 'telegraph';
-        boss.timer = 0;
-      }
-    } else if (boss.state === 'telegraph') {
-      if (boss.timer > 0.7) {
-        boss.state = 'charge';
-        boss.timer = 0;
-        boss.dir = (hero.x < boss.x) ? -1 : 1;
-      }
-    } else if (boss.state === 'charge') {
-      boss.x += (boss.dir * 8.2) * 60 * effDt;
-      if (boss.x > 1950 || boss.x < 250 || boss.timer > 1.3) {
-        boss.state = 'vulnerable';
-        boss.timer = 0;
-      }
-    } else if (boss.state === 'vulnerable') {
-      if (boss.timer > 1.8) {
-        boss.state = 'patrol';
-        boss.timer = 0;
-      }
-    }
-
-    if (checkAABB(hero, boss)) {
-      if ((hero.vy > 2.0 || hero.isDashing) && boss.state === 'vulnerable' && boss.invulnTimer <= 0) {
-        damageBoss(30);
-      } else if (boss.invulnTimer <= 0) {
-        hurtHero(1);
-      }
-    }
-  }
-
-  // تسارع وحركة اللاعب
+  // حركة البطل والجاذبية
   if (hero.isDashing) {
     hero.dashTimer -= effDt;
     hero.ghosts.push({ x: hero.x, y: hero.y, alpha: 0.75, color: '#f59e0b' });
@@ -1692,14 +1935,13 @@ function fixedPhysics(dt) {
     hero.coyoteTimer = CONSTANTS.coyoteMax;
     hero.canDoubleJump = true;
     hero.canDash = true;
-    hero.airDashUsed = false; // إعادة شحن الاندفاع فور ملامسة الأرض
+    hero.airDashUsed = false;
   } else {
     hero.coyoteTimer = Math.max(0, hero.coyoteTimer - effDt);
   }
 
   if (hero.jumpBufferTimer > 0) hero.jumpBufferTimer -= effDt;
 
-  // القفز وقفز الجدار
   if (hero.jumpBufferTimer > 0) {
     if (hero.isWallSliding) {
       hero.vy = CONSTANTS.wallJumpY;
@@ -1708,7 +1950,7 @@ function fixedPhysics(dt) {
       hero.isWallSliding = false;
       hero.jumpBufferTimer = 0;
       hero.canDash = true;
-      hero.airDashUsed = false; // إعادة شحن الاندفاع عند قفز الجدار
+      hero.airDashUsed = false;
       hero.scaleX = 0.72;
       hero.scaleY = 1.38;
       audio.play('walljump');
@@ -1740,7 +1982,7 @@ function fixedPhysics(dt) {
     hero.vy += 30.0 * effDt;
   }
 
-  // التصادم المتدرج الأفقي والرأسي
+  // فحص التصادم المتدرج
   const solids = getActiveSolids();
   hero.isWallSliding = false;
   hero.wallDir = 0;
@@ -1802,7 +2044,7 @@ function fixedPhysics(dt) {
     }
   }
 
-  // وشاح فيزيائي ناعم
+  // الوشاح
   const neckX = hero.x + (hero.facing === 1 ? 5 : 19);
   const neckY = hero.y + 11;
   hero.scarf[0].x = neckX;
@@ -1819,7 +2061,7 @@ function fixedPhysics(dt) {
     cur.y += (prev.y + liftY + wave - cur.y) * 0.38 + 0.6;
   }
 
-  // فحص الأفخاخ القاتلة
+  // فحص الأفخاخ
   for (let i = 0; i < lvl.hazards.length; i++) {
     const h = lvl.hazards[i];
     if (h.d === 'BOTH' || h.d === sys.dimension) {
@@ -1835,7 +2077,7 @@ function fixedPhysics(dt) {
     return;
   }
 
-  // جمع الشظايا وشحن الطاقة
+  // جمع الشظايا
   lvl.shards.forEach(s => {
     if (!s.collected && checkAABB(hero, { x: s.x - 16, y: s.y - 16, w: 32, h: 32 })) {
       s.collected = true;
@@ -1872,7 +2114,6 @@ function fixedPhysics(dt) {
   cam.x = Math.max(0, Math.min(cam.x, lvl.w - viewW));
   cam.y = Math.max(0, Math.min(cam.y, lvl.h - viewH));
 
-  // تحديث الجسيمات
   for (let i = 0; i < MAX_PARTICLES; i++) {
     const p = particles[i];
     if (p.active) {
@@ -1883,7 +2124,6 @@ function fixedPhysics(dt) {
     }
   }
 
-  // تحديث HUD وأشرطة الصحة والطاقة
   document.getElementById('hp-bar-fill').style.width = (hero.hp / CONSTANTS.maxHp * 100) + '%';
   document.getElementById('energy-bar-fill').style.width = (hero.energy / CONSTANTS.maxEnergy * 100) + '%';
 
@@ -1894,7 +2134,7 @@ function fixedPhysics(dt) {
 }
 
 // ==========================================
-// 9. محرك الرسم المتطور والمؤثرات القتالية
+// 9. محرك الرسم المتطور ورسم الزعيم والمؤثرات
 // ==========================================
 function renderCityParallax(lvlW, lvlH) {
   const skyGrad = ctx.createLinearGradient(0, cam.y, 0, cam.y + viewH);
@@ -1920,7 +2160,7 @@ function renderCityParallax(lvlW, lvlH) {
   }
   ctx.restore();
 
-  // مبانٍ متوسطة ونوافذ نيونية
+  // مبانٍ متوسطة
   ctx.save();
   const midOffset = cam.x * 0.35;
   const midW = 90;
@@ -1941,7 +2181,6 @@ function renderCityParallax(lvlW, lvlH) {
 function renderPlayer() {
   ctx.save();
 
-  // وميض المناعة عند تلقي الضرر
   if (sys.invulnTimer > 0 && Math.floor(performance.now() / 60) % 2 === 0) {
     ctx.globalAlpha = 0.35;
   }
@@ -1955,7 +2194,6 @@ function renderPlayer() {
     ctx.shadowBlur = 12;
   }
 
-  // أرجل الركض
   const legOffset1 = Math.sin(hero.runCycle) * 6;
   const legOffset2 = Math.sin(hero.runCycle + Math.PI) * 6;
 
@@ -1974,7 +2212,6 @@ function renderPlayer() {
   ctx.lineTo(6 * hero.facing + legOffset1, 18);
   ctx.stroke();
 
-  // الجذع
   ctx.fillStyle = '#0f172a';
   ctx.fillRect(-8, -8, 16, 18);
   ctx.strokeStyle = primaryCol;
@@ -1984,14 +2221,12 @@ function renderPlayer() {
   ctx.fillStyle = primaryCol;
   ctx.fillRect(-2, -3, 4, 6);
 
-  // الخوذة والنظارة
   ctx.fillStyle = '#1e293b';
   ctx.fillRect(-9, -18, 18, 11);
   ctx.fillStyle = primaryCol;
   const visorX = (hero.facing === 1) ? -1 : -8;
   ctx.fillRect(visorX, -15, 10, 4);
 
-  // رسم نصل الهجوم السيبراني
   if (hero.isAttacking) {
     ctx.save();
     ctx.strokeStyle = '#f43f5e';
@@ -2007,12 +2242,14 @@ function renderPlayer() {
 
   ctx.restore();
 
-  // الوشاح
+  // رسم الوشاح (مع دعم الوشاح الأسطوري المفتوح كجائزة)
   ctx.save();
-  ctx.strokeStyle = primaryCol;
+  ctx.strokeStyle = SAVE_STATE.unlockedPrismScarf
+    ? `hsl(${(performance.now() * 0.1) % 360}, 100%, 65%)`
+    : primaryCol;
   if (!CONFIG.lowFX) {
-    ctx.shadowColor = primaryCol;
-    ctx.shadowBlur = 10;
+    ctx.shadowColor = ctx.strokeStyle;
+    ctx.shadowBlur = 12;
   }
   ctx.lineCap = 'round';
   for (let i = 0; i < hero.scarf.length - 1; i++) {
@@ -2025,6 +2262,117 @@ function renderPlayer() {
     ctx.stroke();
   }
   ctx.restore();
+}
+
+// رسم الزعيم الفائق مع إشارات التلغراف ونوافذ الضعف
+function renderBoss() {
+  if (!boss.active) return;
+  ctx.save();
+
+  // 1. رسم شعاع التلغراف التحذيري (Laser Telegraph Beam)
+  if (boss.state === 'telegraph' || boss.state === 'slam_prep') {
+    ctx.save();
+    ctx.strokeStyle = (boss.phase === 3) ? '#ff0055' : '#f59e0b';
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash([8, 6]);
+    ctx.shadowColor = ctx.strokeStyle;
+    ctx.shadowBlur = 12;
+    ctx.beginPath();
+    if (boss.state === 'telegraph') {
+      const beamTargetX = boss.dir === 1 ? boss.x + 900 : boss.x - 900;
+      ctx.moveTo(boss.x + boss.w / 2, boss.y + boss.h / 2);
+      ctx.lineTo(beamTargetX, boss.y + boss.h / 2);
+    } else {
+      ctx.moveTo(boss.x + boss.w / 2, boss.y + boss.h);
+      ctx.lineTo(boss.x + boss.w / 2, 800);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // 2. وميض المناعة عند تضرر الزعيم
+  if (boss.invulnTimer > 0 && Math.floor(performance.now() / 50) % 2 === 0) {
+    ctx.globalAlpha = 0.45;
+  }
+
+  // 3. درع الزعيم وهيكله الميكانيكي
+  let bossColor = '#ff0055';
+  let bossGlow = '#ff0055';
+
+  if (boss.state === 'vulnerable') {
+    bossColor = '#fbbf24'; // نافذة الضعف الذهبية
+    bossGlow = '#f59e0b';
+  } else if (boss.phase === 2) {
+    bossColor = (boss.attackDim === 'REAL') ? '#00f0ff' : '#ff007f';
+    bossGlow = bossColor;
+  } else if (boss.phase === 3) {
+    bossColor = '#a855f7';
+    bossGlow = '#ff0055';
+  }
+
+  ctx.fillStyle = '#0f172a';
+  ctx.fillRect(boss.x, boss.y, boss.w, boss.h);
+
+  ctx.strokeStyle = bossColor;
+  ctx.lineWidth = 3;
+  if (!CONFIG.lowFX) {
+    ctx.shadowColor = bossGlow;
+    ctx.shadowBlur = (boss.state === 'vulnerable') ? 25 : 15;
+  }
+  ctx.strokeRect(boss.x, boss.y, boss.w, boss.h);
+
+  // قلب الطاقة المركزي للزعيم
+  ctx.fillStyle = bossColor;
+  ctx.fillRect(boss.x + boss.w / 2 - 8, boss.y + boss.h / 2 - 8, 16, 16);
+
+  // عين الرصد التفاعلية
+  ctx.fillStyle = '#ffffff';
+  const eyeX = (boss.dir === 1) ? boss.x + boss.w - 14 : boss.x + 8;
+  ctx.fillRect(eyeX, boss.y + 12, 8, 6);
+
+  // هالة مؤشر الضعف الذهبية
+  if (boss.state === 'vulnerable') {
+    ctx.strokeStyle = '#fbbf24';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(boss.x + boss.w / 2, boss.y + boss.h / 2, boss.w * 0.75, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+
+  // 4. رسم الموجات الصدمية (Shockwaves)
+  boss.shockwaves.forEach(sw => {
+    ctx.save();
+    ctx.strokeStyle = '#ff007f';
+    ctx.lineWidth = 4;
+    ctx.shadowColor = '#ff007f';
+    ctx.shadowBlur = 15;
+    ctx.beginPath();
+    ctx.arc(sw.x, 800 - 10, 16, Math.PI, 0, false);
+    ctx.stroke();
+    ctx.restore();
+  });
+
+  // 5. رسم مخاطر الحلبة المؤقتة (Arena Hazards)
+  boss.arenaHazards.forEach(h => {
+    ctx.save();
+    if (!h.active) {
+      // إنذار مسبق
+      ctx.fillStyle = 'rgba(239, 68, 68, 0.2)';
+      ctx.fillRect(h.x, h.y, h.w, h.h);
+      ctx.strokeStyle = '#ef4444';
+      ctx.setLineDash([8, 8]);
+      ctx.strokeRect(h.x, h.y, h.w, h.h);
+    } else {
+      // ليزر نشط
+      ctx.fillStyle = 'rgba(239, 68, 68, 0.85)';
+      ctx.shadowColor = '#f43f5e';
+      ctx.shadowBlur = 20;
+      ctx.fillRect(h.x, h.y, h.w, h.h);
+    }
+    ctx.restore();
+  });
 }
 
 function render() {
@@ -2152,16 +2500,14 @@ function render() {
     ctx.restore();
   });
 
-  // رسم الأعداء المتنوعين مع نقاط الضعف
+  // رسم الأعداء العاديين
   if (lvl.enemies) {
     lvl.enemies.forEach(en => {
       if (!en.alive || (en.d !== 'BOTH' && en.d !== sys.dimension)) return;
       ctx.save();
-
       if (en.type === 'turret') {
         ctx.fillStyle = '#64748b';
         ctx.fillRect(en.x, en.y, en.w, en.h);
-        // مستشعر ليزري
         ctx.fillStyle = '#f43f5e';
         ctx.beginPath();
         ctx.arc(en.x + en.w / 2, en.y + 12, 6, 0, Math.PI * 2);
@@ -2177,7 +2523,6 @@ function render() {
         const eyeX = (en.dir === 1) ? en.x + en.w - 7 : en.x + 3;
         ctx.fillRect(eyeX, en.y + 7, 5, 5);
       } else {
-        // دورية عادي
         ctx.fillStyle = '#ff0055';
         if (!CONFIG.lowFX) {
           ctx.shadowColor = '#ff0055';
@@ -2188,15 +2533,6 @@ function render() {
         const eyeX = (en.dir === 1) ? en.x + en.w - 7 : en.x + 3;
         ctx.fillRect(eyeX, en.y + 7, 5, 5);
       }
-
-      // شريط صحة فوق الأعداء متعددي الصحة
-      if (en.maxHp > 1) {
-        ctx.fillStyle = 'rgba(0,0,0,0.5)';
-        ctx.fillRect(en.x, en.y - 8, en.w, 4);
-        ctx.fillStyle = '#10b981';
-        ctx.fillRect(en.x, en.y - 8, (en.hp / en.maxHp) * en.w, 4);
-      }
-
       ctx.restore();
     });
   }
@@ -2230,20 +2566,8 @@ function render() {
     ctx.restore();
   }
 
-  // رسم الزعيم
-  if (boss.active) {
-    ctx.save();
-    ctx.fillStyle = (boss.state === 'vulnerable') ? '#fbbf24' : '#ff0055';
-    if (!CONFIG.lowFX) {
-      ctx.shadowColor = ctx.fillStyle;
-      ctx.shadowBlur = 22;
-    }
-    ctx.fillRect(boss.x, boss.y, boss.w, boss.h);
-    ctx.fillStyle = '#ffffff';
-    const bEyeX = (boss.dir === 1) ? boss.x + boss.w - 12 : boss.x + 6;
-    ctx.fillRect(bEyeX, boss.y + 14, 8, 8);
-    ctx.restore();
-  }
+  // رسم الزعيم الفائق
+  renderBoss();
 
   // الأفخاخ
   lvl.hazards.forEach(h => {
@@ -2283,7 +2607,7 @@ function render() {
     }
   });
 
-  // البوابة
+  // بوابة النهاية
   const ex = lvl.exit;
   const opened = (sys.shards >= sys.totalShards) && (!boss.active);
   ctx.save();
@@ -2400,10 +2724,13 @@ function finishCampaign() {
 
   const finalEval = evaluateCampaignPerformance(sys.campaignTotalTime, sys.campaignTotalDeaths);
 
-  document.getElementById('rank-slot').innerHTML = `<div class="rank-text">${finalEval.rank}</div>`;
-  document.getElementById('menu-title').innerText = finalEval.title;
+  document.getElementById('rank-slot').innerHTML = `
+    <div class="rank-text">${finalEval.rank}</div>
+    <div class="reward-box">✨ تم فتح المكافأة الدائمة: وشاح المنشور النيوني الأسطوري (Prism Scarf)</div>
+  `;
+  document.getElementById('menu-title').innerText = "🏆 سحق حارس الواقع!";
   document.getElementById('menu-desc').innerText =
-    `اكتملت الحملة التنافسية بالكامل!\n` +
+    `تم إنهاء الحملة وهزيمة الزعيم في معركة الأبعاد الثلاثية!\n` +
     `مجموع أزمنة المراحل: ${m}:${s}.${ms}\n` +
     `إجمالي وفيات الحملة: ${sys.campaignTotalDeaths}\nالتقييم العام: رتبة ${finalEval.rank}`;
   document.getElementById('btn-start').innerText = 'بدء تحدٍ تنافسي جديد';
