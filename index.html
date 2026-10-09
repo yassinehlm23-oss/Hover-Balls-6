@@ -3,8 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Shadow of the Glitch: Cyber Legacy (Global Edition)</title>
+  <title>Shadow of the Glitch: Cyber Legacy — Tournament Edition</title>
   <style>
+    :root {
+      --primary: #00f0ff;
+      --secondary: #ff007f;
+      --amber: #f59e0b;
+      --danger: #ef4444;
+      --success: #10b981;
+      --bg: #020307;
+      --surface: rgba(8, 14, 28, 0.82);
+      --border: rgba(255, 255, 255, 0.16);
+      --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
     * {
       box-sizing: border-box;
       user-select: none;
@@ -18,59 +29,112 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: #010103;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      font-family: var(--font-main);
       touch-action: none;
       overscroll-behavior: none;
     }
     #game-canvas {
-      display: block;
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 100vw;
       height: 100vh;
-      object-fit: cover;
+      display: block;
+      z-index: 1;
     }
 
-    /* واجهة المعلومات العلوية الفاخرة HUD */
+    /* شريط المعلومات العلوي HUD */
     #hud {
       position: fixed;
-      top: 14px;
-      left: 14px;
-      right: 14px;
+      top: env(safe-area-inset-top, 14px);
+      left: env(safe-area-inset-left, 14px);
+      right: env(safe-area-inset-right, 14px);
       display: flex;
       justify-content: space-between;
       align-items: center;
       pointer-events: none;
       z-index: 100;
+      gap: 8px;
     }
-    .hud-glass {
-      background: rgba(8, 12, 24, 0.75);
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      padding: 7px 16px;
-      border-radius: 20px;
+    .hud-group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .hud-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 6px 14px;
+      border-radius: 18px;
       color: #fff;
       font-size: 13px;
       font-weight: 700;
       backdrop-filter: blur(14px);
-      box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+      -webkit-backdrop-filter: blur(14px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.6);
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 6px;
+      white-space: nowrap;
     }
     #dim-badge {
-      color: #00f0ff;
-      border-color: rgba(0, 240, 255, 0.4);
-      letter-spacing: 1px;
-      transition: all 0.25s ease;
+      color: var(--primary);
+      border-color: rgba(0, 240, 255, 0.5);
+      transition: all 0.2s ease;
     }
-    .badge-danger {
-      color: #f43f5e !important;
-      border-color: rgba(244, 63, 94, 0.4) !important;
+    #dim-badge.glitch-mode {
+      color: var(--secondary);
+      border-color: rgba(255, 0, 127, 0.5);
+    }
+    #hud-delta {
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 12px;
+      display: none;
+    }
+    #hud-delta.ahead {
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      display: inline-block;
+    }
+    #hud-delta.behind {
+      color: var(--danger);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      display: inline-block;
+    }
+    .btn-hud {
+      pointer-events: auto;
+      cursor: pointer;
     }
 
-    /* أزرار التحكم اللمسية السينمائية */
+    /* شريط الزعيم */
+    #boss-hud {
+      position: fixed;
+      top: calc(env(safe-area-inset-top, 14px) + 52px);
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(88vw, 460px);
+      height: 12px;
+      background: rgba(10, 15, 29, 0.85);
+      border: 1px solid rgba(255, 0, 127, 0.6);
+      border-radius: 6px;
+      overflow: hidden;
+      display: none;
+      z-index: 100;
+      box-shadow: 0 0 20px rgba(255, 0, 127, 0.35);
+    }
+    #boss-hp-fill {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, #ff0055, #ff007f);
+      transition: width 0.12s linear;
+    }
+
+    /* لوحة التحكم اللمسية */
     #touch-bar {
       position: fixed;
-      bottom: 22px;
+      bottom: env(safe-area-inset-bottom, 18px);
       left: 0;
       right: 0;
       display: flex;
@@ -79,285 +143,549 @@
       pointer-events: none;
       z-index: 110;
     }
-    .cluster {
+    .touch-cluster {
       display: flex;
-      gap: 14px;
+      gap: 12px;
       align-items: flex-end;
       pointer-events: auto;
     }
-    .btn {
-      width: 65px;
-      height: 65px;
+    .touch-btn {
+      width: 64px;
+      height: 64px;
       border-radius: 50%;
-      background: rgba(15, 20, 36, 0.65);
+      background: rgba(15, 20, 36, 0.7);
       border: 1.5px solid rgba(255, 255, 255, 0.25);
       color: #fff;
-      font-size: 20px;
+      font-size: 19px;
+      font-weight: 800;
       display: flex;
       justify-content: center;
       align-items: center;
-      backdrop-filter: blur(12px);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7), inset 0 2px 4px rgba(255,255,255,0.15);
-      transition: transform 0.08s cubic-bezier(0.1, 0.9, 0.2, 1), background 0.08s;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
       touch-action: none;
+      transition: transform 0.06s ease, background 0.06s ease;
     }
-    .btn:active, .btn.pressed {
-      transform: scale(0.88);
-      background: rgba(255, 255, 255, 0.4);
+    .touch-btn.pressed {
+      transform: scale(0.9);
+      background: rgba(255, 255, 255, 0.35);
     }
-    .btn-shift {
-      background: rgba(255, 0, 128, 0.25);
-      border-color: #ff007f;
-      color: #ff007f;
+    .btn-shift-ui {
+      border-color: var(--secondary);
+      color: var(--secondary);
       font-size: 11px;
-      font-weight: 900;
     }
-    .btn-dash {
-      background: rgba(245, 158, 11, 0.25);
-      border-color: #f59e0b;
-      color: #f59e0b;
+    .btn-dash-ui {
+      border-color: var(--amber);
+      color: var(--amber);
       font-size: 11px;
-      font-weight: 900;
     }
-    .btn-jump {
-      background: rgba(0, 240, 255, 0.25);
-      border-color: #00f0ff;
-      color: #00f0ff;
+    .btn-jump-ui {
+      border-color: var(--primary);
+      color: var(--primary);
     }
 
-    /* شاشات البداية والفوز والرسائل */
-    #menu-overlay {
+    /* النوافذ والقوائم */
+    .modal-panel {
       position: fixed;
       inset: 0;
-      background: radial-gradient(circle at center, rgba(12, 16, 32, 0.96) 0%, rgba(2, 3, 6, 0.99) 100%);
+      background: radial-gradient(circle at center, rgba(10, 16, 32, 0.96) 0%, rgba(2, 3, 6, 0.99) 100%);
       backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
       z-index: 200;
-      padding: 30px;
+      padding: 24px;
       text-align: center;
+      opacity: 1;
+      visibility: visible;
+      transition: opacity 0.2s ease, visibility 0.2s ease;
     }
-    #menu-overlay.hidden { display: none !important; }
-    #menu-overlay h1 {
-      font-size: 32px;
-      color: #00f0ff;
+    .modal-panel.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    .modal-panel h1 {
+      font-size: clamp(24px, 4.5vw, 38px);
+      color: var(--primary);
       text-shadow: 0 0 30px rgba(0, 240, 255, 0.8);
-      letter-spacing: 2px;
-      margin-bottom: 12px;
+      letter-spacing: 1.5px;
+      margin-bottom: 10px;
       font-weight: 900;
     }
-    #menu-overlay p {
+    .modal-panel p {
       font-size: 14px;
       color: #94a3b8;
-      max-width: 440px;
-      line-height: 1.8;
-      margin-bottom: 32px;
+      max-width: 460px;
+      line-height: 1.7;
+      margin-bottom: 24px;
       white-space: pre-line;
     }
-    .rank-badge {
-      display: inline-block;
-      font-size: 54px;
+    .rank-text {
+      font-size: clamp(48px, 9vw, 70px);
       font-weight: 900;
-      color: #f59e0b;
+      color: var(--amber);
       text-shadow: 0 0 30px rgba(245, 158, 11, 0.8);
-      margin-bottom: 12px;
+      margin-bottom: 6px;
     }
-    .glow-btn {
-      padding: 16px 54px;
-      font-size: 18px;
+    .btn-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: min(300px, 88vw);
+    }
+    .action-btn {
+      padding: 13px 32px;
+      font-size: 15px;
       font-weight: 800;
       color: #010204;
-      background: linear-gradient(135deg, #00f0ff, #0088ff);
+      background: linear-gradient(135deg, var(--primary), #0077fe);
       border: none;
-      border-radius: 40px;
-      box-shadow: 0 0 35px rgba(0, 240, 255, 0.7);
+      border-radius: 30px;
+      box-shadow: 0 0 25px rgba(0, 240, 255, 0.6);
       cursor: pointer;
+      transition: transform 0.1s ease, filter 0.1s ease;
     }
-    .glow-btn:active { transform: scale(0.95); }
+    .action-btn:active {
+      transform: scale(0.96);
+    }
+    .secondary-action {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      border: 1px solid var(--border);
+      box-shadow: none;
+    }
+
+    /* شبكة الإعدادات */
+    .cfg-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      width: min(460px, 92vw);
+      margin-bottom: 22px;
+      text-align: right;
+    }
+    .cfg-card {
+      background: rgba(255, 255, 255, 0.04);
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #e2e8f0;
+      font-size: 12.5px;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .cfg-card input[type="checkbox"] {
+      width: 17px;
+      height: 17px;
+      accent-color: var(--primary);
+    }
+    .cfg-card input[type="range"] {
+      width: 80px;
+      accent-color: var(--primary);
+    }
+
+    /* شارات الإنجازات والمظاهر */
+    .achieve-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 240px;
+      overflow-y: auto;
+      width: min(440px, 92vw);
+      margin-bottom: 20px;
+      padding-right: 6px;
+    }
+    .achieve-item {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      text-align: right;
+    }
+    .achieve-item.unlocked {
+      border-color: rgba(16, 185, 129, 0.4);
+      background: rgba(16, 185, 129, 0.08);
+    }
   </style>
 </head>
 <body>
 
 <canvas id="game-canvas"></canvas>
 
+<!-- واجهة HUD -->
 <div id="hud">
-  <div class="hud-glass" id="lvl-badge">المستوى: 1 / 3</div>
-  <div class="hud-glass" id="dim-badge">✦ الواقع [REALITY]</div>
-  <div class="hud-glass" id="stats-badge">💀 0 | 💎 0/0 | ⏱️ 00:00.00</div>
+  <div class="hud-group">
+    <div class="hud-card" id="hud-level">المرحلة: 1 / 3</div>
+    <div class="hud-card" id="dim-badge">✦ الواقع [REALITY]</div>
+    <div id="hud-delta">+0.00</div>
+  </div>
+  <div class="hud-group">
+    <div class="hud-card" id="hud-stats">💀 0 | 💎 0/0 | ⏱️ 00:00.00</div>
+    <div class="hud-card btn-hud" id="btn-pause-open">⏸️</div>
+  </div>
 </div>
 
+<!-- شريط الزعيم -->
+<div id="boss-hud">
+  <div id="boss-hp-fill"></div>
+</div>
+
+<!-- أدوات اللمس -->
 <div id="touch-bar">
-  <div class="cluster">
-    <div class="btn" id="t-left">◀</div>
-    <div class="btn" id="t-right">▶</div>
+  <div class="touch-cluster">
+    <div class="touch-btn" id="t-left">◀</div>
+    <div class="touch-btn" id="t-right">▶</div>
   </div>
-  <div class="cluster">
-    <div class="btn btn-shift" id="t-shift">SHIFT</div>
-    <div class="btn btn-dash" id="t-dash">DASH</div>
-    <div class="btn btn-jump" id="t-jump">▲</div>
+  <div class="touch-cluster">
+    <div class="touch-btn btn-shift-ui" id="t-shift">SHIFT</div>
+    <div class="touch-btn btn-dash-ui" id="t-dash">DASH</div>
+    <div class="touch-btn btn-jump-ui" id="t-jump">▲</div>
   </div>
 </div>
 
-<div id="menu-overlay">
-  <div id="rank-box"></div>
-  <h1 id="m-title">SHADOW OF THE GLITCH</h1>
-  <p id="m-desc">
-    تجربة منصات تنافسية عالمية:
-    استخدم <b>SHIFT</b> للتبديل بين الأبعاد، <b>DASH</b> للاندفاع واختراق الحراس،
-    والتصق بالجدران للقيام بـ <b>Wall Jump</b>.
-    احذر من <b>جدار الليزر الملاحق</b> الذي لا يرحم!
+<!-- الشاشة الرئيسية -->
+<div class="modal-panel" id="modal-menu">
+  <div id="rank-slot"></div>
+  <h1 id="menu-title">SHADOW OF THE GLITCH</h1>
+  <p id="menu-desc">
+    تجربة منصات تنافسية احترافية:
+    استخدم <b>SHIFT</b> للتبديل بين العالمين، و<b>DASH</b> لتخطي العقبات،
+    والتصق بالجدران لتنفيذ <b>Wall Jump</b>.
+    سجل أسرع زمن وتفوق على شبح أفضل محاولاتك!
   </p>
-  <button class="glow-btn" id="m-action">دخول العالم</button>
+  <div class="btn-stack">
+    <button class="action-btn" id="btn-start">دخول العالم</button>
+    <button class="action-btn secondary-action" id="btn-open-settings">الإعدادات والتخصيص</button>
+    <button class="action-btn secondary-action" id="btn-open-achievements">الإنجازات والمظاهر</button>
+  </div>
+</div>
+
+<!-- شاشة الإيقاف المؤقت -->
+<div class="modal-panel hidden" id="modal-pause">
+  <h1>اللعبة متوقفة</h1>
+  <p>الزمن التنافسي متوقف حالياً. رتب خطتك واستعد لإكمال الجولة.</p>
+  <div class="btn-stack">
+    <button class="action-btn" id="btn-resume">استئناف اللعب</button>
+    <button class="action-btn secondary-action" id="btn-restart-now">إعادة المرحلة الحالية</button>
+    <button class="action-btn secondary-action" id="btn-exit-main">العودة للشاشة الرئيسية</button>
+  </div>
+</div>
+
+<!-- نافذة الإعدادات -->
+<div class="modal-panel hidden" id="modal-settings">
+  <h1>إعدادات النظام والتحكم</h1>
+  <div class="cfg-grid">
+    <div class="cfg-card">
+      <span>اهتزاز الشاشة (Shake)</span>
+      <input type="checkbox" id="cfg-shake" checked>
+    </div>
+    <div class="cfg-card">
+      <span>شبح أفضل زمن (Ghost)</span>
+      <input type="checkbox" id="cfg-ghost" checked>
+    </div>
+    <div class="cfg-card">
+      <span>المؤثرات الصوتية والموسيقى</span>
+      <input type="checkbox" id="cfg-audio" checked>
+    </div>
+    <div class="cfg-card">
+      <span>الاهتزاز اللمسي (Haptic)</span>
+      <input type="checkbox" id="cfg-haptic" checked>
+    </div>
+    <div class="cfg-card">
+      <span>شفافية أزرار اللمس</span>
+      <input type="range" id="cfg-touch-alpha" min="20" max="100" value="70">
+    </div>
+    <div class="cfg-card">
+      <span>حجم أزرار اللمس</span>
+      <input type="range" id="cfg-touch-size" min="50" max="85" value="64">
+    </div>
+  </div>
+  <div class="btn-stack">
+    <button class="action-btn" id="btn-save-cfg">حفظ وتطبيق</button>
+  </div>
+</div>
+
+<!-- نافذة الإنجازات والمظاهر -->
+<div class="modal-panel hidden" id="modal-achievements">
+  <h1>سجل الإنجازات التنافسية</h1>
+  <div class="achieve-list" id="achieve-container"></div>
+  <div class="btn-stack">
+    <button class="action-btn" id="btn-close-achieve">إغلاق</button>
+  </div>
 </div>
 
 <script>
+/**
+ * Shadow of the Glitch: Cyber Legacy — Tournament Edition
+ * محرك فيزيائي زمني ثابت 60Hz مع استيفاء، شبح تنافسي معتمد على أفضل الأوقات،
+ * حماية متقدمة من حشر الأبعاد، ونظام إدارة إنجازات وتخزين محلي مقاوم للتلف.
+ */
+
 // ==========================================
-// 1. محرك الصوتيات الإجرائي (Procedural Synth Engine)
+// 1. نظام الحفظ والإعدادات الدائمة (SaveManager)
 // ==========================================
-let actx = null;
-let bgmStep = 0;
-let bgmInterval = null;
+const CONFIG = {
+  shake: true,
+  ghost: true,
+  audio: true,
+  haptic: true,
+  touchAlpha: 0.7,
+  touchSize: 64,
+  selectedScarf: '#00f0ff'
+};
 
-function bootAudio() {
-  if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
-  if (actx && actx.state === 'suspended') actx.resume();
-  startBGM();
-}
+const ACHIEVEMENTS_DEF = [
+  { id: 'first_clear', title: 'البداية الرقمية', desc: 'أكمل المرحلة الأولى بنجاح.' },
+  { id: 'no_death', title: 'خالٍ من العيوب', desc: 'أكمل أي مرحلة دون أي حالة موت.' },
+  { id: 'shard_master', title: 'جامع الطاقة', desc: 'اجمع جميع شظايا الطاقة في مرحلة واحدة.' },
+  { id: 'boss_slayer', title: 'قاهر الخلل', desc: 'اهزم حارس الواقع في الفصل الأخير.' },
+  { id: 'speed_demon', title: 'وميض البرق', desc: 'أنهِ مرحلة وحقق تقييم رتبة S+.' }
+];
 
-function fx(type) {
-  if (!actx) return;
-  const t = actx.currentTime;
-  const o = actx.createOscillator();
-  const g = actx.createGain();
-  o.connect(g);
-  g.connect(actx.destination);
+const STORAGE_KEY = 'SOTG_TOURNAMENT_SAVE_V3';
 
-  if (type === 'jump') {
-    o.type = 'triangle';
-    o.frequency.setValueAtTime(160, t);
-    o.frequency.exponentialRampToValueAtTime(540, t + 0.12);
-    g.gain.setValueAtTime(0.18, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
-    o.start(t); o.stop(t + 0.12);
-  } else if (type === 'walljump') {
-    o.type = 'sine';
-    o.frequency.setValueAtTime(260, t);
-    o.frequency.exponentialRampToValueAtTime(680, t + 0.14);
-    g.gain.setValueAtTime(0.22, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
-    o.start(t); o.stop(t + 0.14);
-  } else if (type === 'doublejump') {
-    o.type = 'sine';
-    o.frequency.setValueAtTime(350, t);
-    o.frequency.exponentialRampToValueAtTime(800, t + 0.15);
-    g.gain.setValueAtTime(0.2, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
-    o.start(t); o.stop(t + 0.15);
-  } else if (type === 'dash') {
-    o.type = 'sawtooth';
-    o.frequency.setValueAtTime(320, t);
-    o.frequency.exponentialRampToValueAtTime(60, t + 0.18);
-    g.gain.setValueAtTime(0.25, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
-    o.start(t); o.stop(t + 0.18);
-  } else if (type === 'shift') {
-    o.type = 'sawtooth';
-    o.frequency.setValueAtTime(800, t);
-    o.frequency.exponentialRampToValueAtTime(100, t + 0.22);
-    g.gain.setValueAtTime(0.28, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
-    o.start(t); o.stop(t + 0.22);
-  } else if (type === 'shard') {
-    o.type = 'sine';
-    o.frequency.setValueAtTime(659.25, t);
-    o.frequency.setValueAtTime(987.77, t + 0.08);
-    g.gain.setValueAtTime(0.25, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
-    o.start(t); o.stop(t + 0.3);
-  } else if (type === 'hit') {
-    o.type = 'square';
-    o.frequency.setValueAtTime(200, t);
-    o.frequency.exponentialRampToValueAtTime(40, t + 0.2);
-    g.gain.setValueAtTime(0.3, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
-    o.start(t); o.stop(t + 0.2);
-  } else if (type === 'slowmo') {
-    o.type = 'sine';
-    o.frequency.setValueAtTime(120, t);
-    o.frequency.exponentialRampToValueAtTime(45, t + 0.25);
-    g.gain.setValueAtTime(0.16, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
-    o.start(t); o.stop(t + 0.25);
-  } else if (type === 'death') {
-    o.type = 'sawtooth';
-    o.frequency.setValueAtTime(160, t);
-    o.frequency.exponentialRampToValueAtTime(20, t + 0.35);
-    g.gain.setValueAtTime(0.4, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
-    o.start(t); o.stop(t + 0.35);
-  }
-}
-
-function startBGM() {
-  if (bgmInterval || !actx) return;
-  const baseNotes = [110, 110, 130.81, 98, 87.31, 98, 110, 146.83];
-  bgmInterval = setInterval(() => {
-    if (!sys.running || !actx) return;
+class StorageManager {
+  static load() {
     try {
-      const t = actx.currentTime;
-      const o = actx.createOscillator();
-      const g = actx.createGain();
-      o.type = (sys.dimension === 'REAL') ? 'sine' : 'sawtooth';
-      const f = baseNotes[bgmStep % baseNotes.length];
-      o.frequency.setValueAtTime(f, t);
-      const vol = (sys.dimension === 'REAL') ? 0.03 : 0.02;
-      g.gain.setValueAtTime(vol, t);
-      g.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
-      o.connect(g);
-      g.connect(actx.destination);
-      o.start(t);
-      o.stop(t + 0.7);
-      bgmStep++;
-    } catch(e){}
-  }, 400);
+      const data = localStorage.getItem(STORAGE_KEY);
+      if (data) {
+        const parsed = JSON.parse(data);
+        if (parsed.config) Object.assign(CONFIG, parsed.config);
+        return parsed;
+      }
+    } catch (e) {
+      console.warn('تعذر قراءة التخزين المحلي، سيتم استخدام الذاكرة المؤقتة:', e);
+    }
+    return {
+      bestTimes: {},    // { [levelIndex]: milliseconds }
+      bestSplits: {},   // { [levelIndex]: [t1, t2, ...] }
+      bestRanks: {},    // { [levelIndex]: 'S+' }
+      ghostTrails: {},  // { [levelIndex]: Array<{t, x, y, dim, facing}> }
+      achievements: {}, // { [id]: boolean }
+      config: CONFIG
+    };
+  }
+
+  static save(data) {
+    try {
+      data.config = CONFIG;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (e) {
+      console.warn('تعذر الحفظ في التخزين المحلي:', e);
+    }
+  }
 }
 
-function haptic(ms = 25) {
-  if (navigator.vibrate) {
-    try { navigator.vibrate(ms); } catch(e){}
+let SAVE_STATE = StorageManager.load();
+
+function unlockAchievement(id) {
+  if (!SAVE_STATE.achievements[id]) {
+    SAVE_STATE.achievements[id] = true;
+    StorageManager.save(SAVE_STATE);
   }
 }
 
 // ==========================================
-// 2. إعداد المحرك والكانفاس والبيانات
+// 2. محرك الصوت الإجرائي المستقر (AudioManager)
+// ==========================================
+class SoundFX {
+  constructor() {
+    this.ctx = null;
+    this.bgmOsc = null;
+    this.bgmGain = null;
+    this.bgmTimer = null;
+    this.step = 0;
+    this.notes = [110, 110, 130.81, 98, 87.31, 98, 110, 146.83];
+  }
+
+  init() {
+    if (!CONFIG.audio) return;
+    if (!this.ctx) {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) this.ctx = new AudioCtx();
+    }
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+    this.startMusic();
+  }
+
+  startMusic() {
+    if (this.bgmTimer || !this.ctx || !CONFIG.audio) return;
+    this.bgmTimer = setInterval(() => {
+      if (!sys.running || sys.paused || !CONFIG.audio) return;
+      try {
+        const t = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const g = this.ctx.createGain();
+        osc.type = (sys.dimension === 'REAL') ? 'sine' : 'sawtooth';
+        osc.frequency.setValueAtTime(this.notes[this.step % this.notes.length], t);
+        const vol = (sys.dimension === 'REAL') ? 0.03 : 0.018;
+        g.gain.setValueAtTime(vol, t);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+        osc.connect(g);
+        g.connect(this.ctx.destination);
+        osc.start(t);
+        osc.stop(t + 0.35);
+        this.step++;
+      } catch (e) {}
+    }, 280);
+  }
+
+  stopMusic() {
+    if (this.bgmTimer) {
+      clearInterval(this.bgmTimer);
+      this.bgmTimer = null;
+    }
+  }
+
+  play(name) {
+    if (!this.ctx || !CONFIG.audio) return;
+    try {
+      const t = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      osc.connect(g);
+      g.connect(this.ctx.destination);
+
+      if (name === 'jump') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(160, t);
+        osc.frequency.exponentialRampToValueAtTime(560, t + 0.11);
+        g.gain.setValueAtTime(0.18, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.11);
+        osc.start(t); osc.stop(t + 0.11);
+      } else if (name === 'walljump') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(280, t);
+        osc.frequency.exponentialRampToValueAtTime(720, t + 0.13);
+        g.gain.setValueAtTime(0.2, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.13);
+        osc.start(t); osc.stop(t + 0.13);
+      } else if (name === 'dash') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(340, t);
+        osc.frequency.exponentialRampToValueAtTime(50, t + 0.16);
+        g.gain.setValueAtTime(0.25, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+        osc.start(t); osc.stop(t + 0.16);
+      } else if (name === 'shift') {
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(700, t);
+        osc.frequency.exponentialRampToValueAtTime(140, t + 0.2);
+        g.gain.setValueAtTime(0.18, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+        osc.start(t); osc.stop(t + 0.2);
+      } else if (name === 'shift_denied') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(120, t);
+        osc.frequency.setValueAtTime(90, t + 0.08);
+        g.gain.setValueAtTime(0.2, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+        osc.start(t); osc.stop(t + 0.18);
+      } else if (name === 'shard') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(659.25, t);
+        osc.frequency.setValueAtTime(987.77, t + 0.08);
+        g.gain.setValueAtTime(0.24, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+        osc.start(t); osc.stop(t + 0.28);
+      } else if (name === 'hit') {
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(200, t);
+        osc.frequency.exponentialRampToValueAtTime(40, t + 0.16);
+        g.gain.setValueAtTime(0.3, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+        osc.start(t); osc.stop(t + 0.16);
+      } else if (name === 'death') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(150, t);
+        osc.frequency.exponentialRampToValueAtTime(20, t + 0.36);
+        g.gain.setValueAtTime(0.38, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.36);
+        osc.start(t); osc.stop(t + 0.36);
+      }
+    } catch (e) {}
+  }
+}
+
+const audio = new SoundFX();
+
+function triggerHaptic(ms = 25) {
+  if (CONFIG.haptic && navigator.vibrate) {
+    try { navigator.vibrate(ms); } catch (e) {}
+  }
+}
+
+// ==========================================
+// 3. إدارة العرض والـ Canvas (DisplayManager)
 // ==========================================
 const canvas = document.getElementById('game-canvas');
-const ctx = canvas.getContext('2d');
-let W = window.innerWidth;
-let H = window.innerHeight;
+const ctx = canvas.getContext('2d', { alpha: false });
+let viewW = window.innerWidth;
+let viewH = window.innerHeight;
+let dpr = 1;
 
-function resize() {
-  W = window.innerWidth;
-  H = window.innerHeight;
-  canvas.width = W;
-  canvas.height = H;
+function resizeCanvas() {
+  dpr = window.devicePixelRatio || 1;
+  viewW = window.innerWidth;
+  viewH = window.innerHeight;
+  canvas.width = Math.floor(viewW * dpr);
+  canvas.height = Math.floor(viewH * dpr);
+  canvas.style.width = viewW + 'px';
+  canvas.style.height = viewH + 'px';
+  ctx.imageSmoothingEnabled = false;
 }
-window.addEventListener('resize', resize);
-resize();
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// ==========================================
+// 4. ثوابت ونماذج الفيزياء (Physics & Engine State)
+// ==========================================
+const CONSTANTS = {
+  fixedStep: 1 / 60,
+  maxAccum: 0.2,
+  gravity: 34.0,
+  maxFall: 17.5,
+  walkSpeed: 6.0,
+  runAccel: 50.0,
+  runDecel: 44.0,
+  airAccel: 30.0,
+  jumpForce: -13.0,
+  wallSlideSpeed: 3.0,
+  wallJumpX: 8.5,
+  wallJumpY: -12.2,
+  dashSpeed: 17.0,
+  dashDuration: 0.18,
+  coyoteMax: 0.1,
+  jumpBufferMax: 0.12
+};
 
 const sys = {
   running: false,
+  paused: false,
   level: 0,
   dimension: 'REAL',
   shake: 0,
   chromatic: 0,
-  timeStart: 0,
+  flash: 0,
+  deaths: 0,
+  levelDeaths: 0,
   shards: 0,
   totalShards: 0,
-  deaths: 0,
-  flash: 0,
+  activeLevelTime: 0, // زمن اللعب الصافي للمرحلة الحالية فقط (بالثواني)
+  levelSplits: [],
   timeScale: 1.0,
   slowMoTimer: 0
 };
@@ -365,275 +693,422 @@ const sys = {
 const cam = {
   x: 0, y: 0,
   targetX: 0, targetY: 0,
-  k: 0.08
+  smooth: 0.085
 };
 
+const hero = {
+  x: 0, y: 0,
+  w: 24, h: 36,
+  vx: 0, vy: 0,
+  isGrounded: false,
+  isWallSliding: false,
+  wallDir: 0,
+  facing: 1,
+  canDoubleJump: true,
+  canDash: true,
+  isDashing: false,
+  dashTimer: 0,
+  coyoteTimer: 0,
+  jumpBufferTimer: 0,
+  scaleX: 1, scaleY: 1,
+  scarf: Array.from({ length: 5 }, () => ({ x: 0, y: 0 })),
+  ghosts: []
+};
+
+const chaser = {
+  x: -600,
+  speed: 1.25
+};
+
+const boss = {
+  active: false,
+  x: 0, y: 0,
+  w: 52, h: 64,
+  hp: 100, maxHp: 100,
+  phase: 1,
+  state: 'patrol',
+  timer: 0,
+  dir: 1,
+  invulnTimer: 0
+};
+
+// نظام الشبح المعتمد على الزمن
+let currentGhostRecord = [];
+let activeReplayGhost = [];
+
+// مجمع الجسيمات
+const MAX_PARTICLES = 250;
+const particles = Array.from({ length: MAX_PARTICLES }, () => ({
+  active: false,
+  x: 0, y: 0,
+  vx: 0, vy: 0,
+  life: 0,
+  maxLife: 1,
+  color: '#fff',
+  size: 3
+}));
+
+function emitParticles(x, y, color, count = 10, speedMul = 1) {
+  let spawned = 0;
+  for (let i = 0; i < MAX_PARTICLES && spawned < count; i++) {
+    const p = particles[i];
+    if (!p.active) {
+      p.active = true;
+      p.x = x;
+      p.y = y;
+      const angle = Math.random() * Math.PI * 2;
+      const spd = (Math.random() * 3.5 + 1.2) * speedMul;
+      p.vx = Math.cos(angle) * spd;
+      p.vy = Math.sin(angle) * spd;
+      p.life = 0;
+      p.maxLife = Math.random() * 0.32 + 0.2;
+      p.color = color;
+      p.size = Math.random() * 2.5 + 1.8;
+      spawned++;
+    }
+  }
+}
+
 // ==========================================
-// 3. المراحل الذكية مع الحراس والمسارات
+// 5. تصميم المراحل (Level Configurations)
 // ==========================================
 const levels = [
   {
-    w: 2600, h: 900,
-    spawn: { x: 100, y: 720 },
-    exit: { x: 2440, y: 380 },
+    name: 'مدينة الواقع الرقمي',
+    w: 2800, h: 950,
+    spawn: { x: 120, y: 740 },
+    exit: { x: 2600, y: 440 },
     chaserSpeed: 1.15,
     platforms: [
-      { x: 0, y: 800, w: 900, h: 100, d: 'BOTH' },
-      { x: 1050, y: 800, w: 1550, h: 100, d: 'BOTH' },
-      { x: 380, y: 680, w: 150, h: 24, d: 'REAL' },
-      { x: 620, y: 560, w: 150, h: 24, d: 'GLITCH' },
-      { x: 880, y: 480, w: 160, h: 24, d: 'REAL' },
-      { x: 1180, y: 560, w: 150, h: 24, d: 'GLITCH' },
-      { x: 1440, y: 640, w: 150, h: 24, d: 'REAL' },
-      { x: 1700, y: 520, w: 160, h: 24, d: 'GLITCH' },
-      { x: 2000, y: 440, w: 180, h: 24, d: 'REAL' },
-      { x: 2360, y: 460, w: 240, h: 24, d: 'BOTH' }
+      { x: 0, y: 840, w: 900, h: 110, d: 'BOTH' },
+      { x: 1040, y: 840, w: 1760, h: 110, d: 'BOTH' },
+      { x: 380, y: 710, w: 140, h: 24, d: 'REAL' },
+      { x: 620, y: 590, w: 150, h: 24, d: 'GLITCH' },
+      { x: 860, y: 500, w: 160, h: 24, d: 'REAL' },
+      { x: 1160, y: 580, w: 150, h: 24, d: 'GLITCH' },
+      { x: 1440, y: 660, w: 150, h: 24, d: 'REAL' },
+      { x: 1720, y: 540, w: 160, h: 24, d: 'GLITCH' },
+      { x: 2020, y: 460, w: 180, h: 24, d: 'REAL' },
+      { x: 2360, y: 480, w: 300, h: 24, d: 'BOTH' }
     ],
     moving: [
-      { x: 920, y: 700, w: 110, h: 20, d: 'BOTH', minX: 900, maxX: 1040, spd: 2, dir: 1 }
+      { x: 920, y: 720, w: 100, h: 20, d: 'BOTH', minX: 900, maxX: 1030, spd: 1.8, dir: 1 }
     ],
     hazards: [
-      { x: 900, y: 860, w: 150, h: 40, d: 'BOTH' },
-      { x: 420, y: 656, w: 70, h: 24, d: 'REAL' },
-      { x: 1480, y: 616, w: 70, h: 24, d: 'REAL' }
+      { x: 900, y: 900, w: 140, h: 40, d: 'BOTH' },
+      { x: 420, y: 686, w: 60, h: 24, d: 'REAL' },
+      { x: 1480, y: 636, w: 70, h: 24, d: 'REAL' }
     ],
     enemies: [
-      { x: 1250, y: 760, w: 26, h: 26, minX: 1100, maxX: 1500, spd: 2, dir: 1, alive: true }
+      { x: 1300, y: 800, w: 26, h: 26, minX: 1150, maxX: 1550, spd: 2.0, dir: 1, alive: true, d: 'BOTH' }
     ],
     shards: [
-      { x: 695, y: 510, collected: false },
-      { x: 1255, y: 510, collected: false },
-      { x: 1780, y: 470, collected: false }
-    ]
+      { x: 700, y: 540, collected: false },
+      { x: 1240, y: 530, collected: false },
+      { x: 1800, y: 490, collected: false }
+    ],
+    boss: null
   },
   {
-    w: 3000, h: 950,
-    spawn: { x: 100, y: 800 },
-    exit: { x: 2850, y: 320 },
+    name: 'انهيار السايبر المعلق',
+    w: 3200, h: 1000,
+    spawn: { x: 100, y: 820 },
+    exit: { x: 3000, y: 360 },
     chaserSpeed: 1.35,
     platforms: [
-      { x: 0, y: 870, w: 450, h: 80, d: 'BOTH' },
-      { x: 500, y: 760, w: 140, h: 24, d: 'REAL' },
-      { x: 720, y: 660, w: 140, h: 24, d: 'GLITCH' },
-      { x: 940, y: 560, w: 140, h: 24, d: 'REAL' },
-      { x: 1180, y: 470, w: 160, h: 24, d: 'GLITCH' },
-      { x: 1440, y: 560, w: 140, h: 24, d: 'REAL' },
-      { x: 1680, y: 660, w: 140, h: 24, d: 'GLITCH' },
-      { x: 1940, y: 560, w: 150, h: 24, d: 'REAL' },
-      { x: 2200, y: 460, w: 150, h: 24, d: 'GLITCH' },
-      { x: 2450, y: 380, w: 160, h: 24, d: 'REAL' },
-      { x: 2750, y: 400, w: 250, h: 60, d: 'BOTH' }
+      { x: 0, y: 900, w: 420, h: 100, d: 'BOTH' },
+      { x: 480, y: 800, w: 130, h: 24, d: 'REAL' },
+      { x: 680, y: 700, w: 140, h: 24, d: 'GLITCH' },
+      { x: 900, y: 600, w: 130, h: 24, d: 'REAL' },
+      { x: 1140, y: 500, w: 150, h: 24, d: 'GLITCH' },
+      { x: 1380, y: 590, w: 140, h: 24, d: 'REAL' },
+      { x: 1620, y: 690, w: 140, h: 24, d: 'GLITCH' },
+      { x: 1880, y: 590, w: 150, h: 24, d: 'REAL' },
+      { x: 2140, y: 490, w: 150, h: 24, d: 'GLITCH' },
+      { x: 2400, y: 420, w: 150, h: 24, d: 'REAL' },
+      { x: 2700, y: 440, w: 400, h: 80, d: 'BOTH' }
     ],
     moving: [
-      { x: 1180, y: 380, w: 110, h: 20, d: 'REAL', minX: 1120, maxX: 1350, spd: 3, dir: 1 }
+      { x: 1140, y: 420, w: 110, h: 20, d: 'REAL', minX: 1080, maxX: 1320, spd: 2.8, dir: 1 },
+      { x: 1900, y: 510, w: 110, h: 20, d: 'GLITCH', minX: 1800, maxX: 2050, spd: 3.2, dir: 1 }
     ],
     hazards: [
-      { x: 450, y: 910, w: 2300, h: 40, d: 'BOTH' },
-      { x: 970, y: 536, w: 80, h: 24, d: 'REAL' },
-      { x: 1980, y: 536, w: 70, h: 24, d: 'REAL' }
+      { x: 420, y: 950, w: 2280, h: 40, d: 'BOTH' },
+      { x: 930, y: 576, w: 70, h: 24, d: 'REAL' },
+      { x: 1920, y: 566, w: 70, h: 24, d: 'REAL' }
     ],
     enemies: [
-      { x: 800, y: 620, w: 26, h: 26, minX: 740, maxX: 840, spd: 1.8, dir: 1, alive: true },
-      { x: 2000, y: 520, w: 26, h: 26, minX: 1950, maxX: 2070, spd: 2.2, dir: 1, alive: true }
+      { x: 740, y: 660, w: 26, h: 26, minX: 690, maxX: 810, spd: 1.8, dir: 1, alive: true, d: 'GLITCH' },
+      { x: 1940, y: 550, w: 26, h: 26, minX: 1890, maxX: 2020, spd: 2.2, dir: 1, alive: true, d: 'REAL' }
     ],
     shards: [
-      { x: 790, y: 610, collected: false },
-      { x: 1235, y: 420, collected: false },
-      { x: 2275, y: 410, collected: false }
-    ]
+      { x: 750, y: 650, collected: false },
+      { x: 1200, y: 450, collected: false },
+      { x: 2210, y: 440, collected: false }
+    ],
+    boss: null
   },
   {
-    w: 2800, h: 1050,
-    spawn: { x: 100, y: 240 },
-    exit: { x: 2620, y: 920 },
-    chaserSpeed: 1.55,
+    name: 'حلبة حارس الواقع',
+    w: 2400, h: 900,
+    spawn: { x: 150, y: 720 },
+    exit: { x: 2200, y: 720 },
+    chaserSpeed: 0,
     platforms: [
-      { x: 30, y: 320, w: 220, h: 26, d: 'BOTH' },
-      { x: 340, y: 400, w: 140, h: 24, d: 'REAL' },
-      { x: 580, y: 480, w: 140, h: 24, d: 'GLITCH' },
-      { x: 820, y: 560, w: 140, h: 24, d: 'REAL' },
-      { x: 1080, y: 640, w: 150, h: 24, d: 'GLITCH' },
-      { x: 1360, y: 720, w: 150, h: 24, d: 'REAL' },
-      { x: 1640, y: 790, w: 150, h: 24, d: 'GLITCH' },
-      { x: 1920, y: 850, w: 160, h: 24, d: 'REAL' },
-      { x: 2220, y: 910, w: 160, h: 24, d: 'GLITCH' },
-      { x: 2500, y: 980, w: 260, h: 70, d: 'BOTH' }
+      { x: 0, y: 800, w: 2400, h: 100, d: 'BOTH' },
+      { x: 0, y: 0, w: 40, h: 800, d: 'BOTH' },
+      { x: 2360, y: 0, w: 40, h: 800, d: 'BOTH' },
+      { x: 300, y: 640, w: 200, h: 24, d: 'REAL' },
+      { x: 650, y: 520, w: 220, h: 24, d: 'GLITCH' },
+      { x: 1050, y: 420, w: 300, h: 24, d: 'BOTH' },
+      { x: 1530, y: 520, w: 220, h: 24, d: 'GLITCH' },
+      { x: 1900, y: 640, w: 200, h: 24, d: 'REAL' }
     ],
-    moving: [
-      { x: 580, y: 390, w: 110, h: 20, d: 'GLITCH', minX: 520, maxX: 720, spd: 3.2, dir: 1 },
-      { x: 1640, y: 710, w: 110, h: 20, d: 'REAL', minX: 1540, maxX: 1800, spd: 3.2, dir: 1 }
-    ],
-    hazards: [
-      { x: 0, y: 1020, w: 2500, h: 30, d: 'BOTH' },
-      { x: 850, y: 536, w: 80, h: 24, d: 'REAL' },
-      { x: 1390, y: 696, w: 90, h: 24, d: 'REAL' }
-    ],
-    enemies: [
-      { x: 1120, y: 600, w: 26, h: 26, minX: 1090, maxX: 1210, spd: 2.5, dir: 1, alive: true },
-      { x: 1950, y: 810, w: 26, h: 26, minX: 1930, maxX: 2060, spd: 2.5, dir: 1, alive: true }
-    ],
+    moving: [],
+    hazards: [],
+    enemies: [],
     shards: [
-      { x: 650, y: 340, collected: false },
-      { x: 1435, y: 670, collected: false },
-      { x: 2300, y: 860, collected: false }
-    ]
+      { x: 400, y: 590, collected: false },
+      { x: 1200, y: 360, collected: false },
+      { x: 2000, y: 590, collected: false }
+    ],
+    boss: { spawnX: 1200, spawnY: 736 }
   }
 ];
 
 // ==========================================
-// 4. البطل، الشبح الملاحق، والفيزياء
+// 6. إدارة المدخلات المتينة (InputManager)
 // ==========================================
-const hero = {
-  x: 0, y: 0,
-  w: 26, h: 38,
-  vx: 0, vy: 0,
-  speed: 5.6,
-  jumpForce: -12.4,
-  isGrounded: false,
-  isWallSliding: false,
-  wallDir: 0, // -1 يسار، 1 يمين
-  jumps: 2,
-  coyote: 0,
-  buffer: 0,
-  canDash: true,
-  isDashing: false,
-  dashTime: 0,
-  dashDir: 1,
-  facing: 1,
-  scaleX: 1, scaleY: 1,
-  scarf: [
-    {x:0, y:0}, {x:0, y:0}, {x:0, y:0}, {x:0, y:0}, {x:0, y:0}
-  ],
-  ghosts: []
+const input = {
+  left: false,
+  right: false,
+  jumpHeld: false,
+  jumpPressed: false,
+  dashTrigger: false,
+  shiftTrigger: false
 };
 
-// جدار الموت الرقمي الملاحق
-const chaser = {
-  x: -400,
-  speed: 1.2
-};
+const pointerMap = new Map();
 
-// نظام طيف الموت السابق (Death Echo)
-let currentRunTrail = [];
-let echoTrail = [];
-let echoIndex = 0;
-
-let fxParticles = [];
-function addFx(x, y, color, count = 12, mul = 1) {
-  for (let i = 0; i < count; i++) {
-    fxParticles.push({
-      x, y,
-      vx: (Math.random() - 0.5) * 6 * mul,
-      vy: (Math.random() - 0.5) * 6 * mul,
-      life: 1,
-      decay: Math.random() * 0.035 + 0.025,
-      color
-    });
-  }
-}
-
-// ==========================================
-// 5. نظام الإدخال
-// ==========================================
-const keys = { left: false, right: false };
-
-function bindTouch(id, onStart, onEnd) {
+function attachTouchButton(id, onDown, onUp) {
   const el = document.getElementById(id);
-  const start = (e) => {
+  if (!el) return;
+
+  el.addEventListener('pointerdown', (e) => {
     e.preventDefault();
-    bootAudio();
+    audio.init();
+    pointerMap.set(e.pointerId, id);
     el.classList.add('pressed');
-    onStart();
+    onDown();
+  });
+
+  const clearPointer = (e) => {
+    if (pointerMap.get(e.pointerId) === id) {
+      pointerMap.delete(e.pointerId);
+      el.classList.remove('pressed');
+      if (onUp) onUp();
+    }
   };
-  const end = (e) => {
-    e.preventDefault();
-    el.classList.remove('pressed');
-    if (onEnd) onEnd();
-  };
-  el.addEventListener('touchstart', start, { passive: false });
-  el.addEventListener('touchend', end, { passive: false });
-  el.addEventListener('touchcancel', end, { passive: false });
-  el.addEventListener('mousedown', start);
-  el.addEventListener('mouseup', end);
-  el.addEventListener('mouseleave', end);
+
+  el.addEventListener('pointerup', clearPointer);
+  el.addEventListener('pointercancel', clearPointer);
+  el.addEventListener('pointerleave', clearPointer);
 }
 
-bindTouch('t-left', () => keys.left = true, () => keys.left = false);
-bindTouch('t-right', () => keys.right = true, () => keys.right = false);
-bindTouch('t-jump', () => cmdJump(), null);
-bindTouch('t-dash', () => cmdDash(), null);
-bindTouch('t-shift', () => cmdShift(), null);
+attachTouchButton('t-left', () => input.left = true, () => input.left = false);
+attachTouchButton('t-right', () => input.right = true, () => input.right = false);
+attachTouchButton('t-jump', () => {
+  input.jumpPressed = true;
+  input.jumpHeld = true;
+  hero.jumpBufferTimer = CONSTANTS.jumpBufferMax;
+}, () => {
+  input.jumpHeld = false;
+});
+attachTouchButton('t-dash', () => input.dashTrigger = true);
+attachTouchButton('t-shift', () => input.shiftTrigger = true);
 
 window.addEventListener('keydown', (e) => {
-  bootAudio();
-  if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = true;
-  if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = true;
-  if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') cmdJump();
-  if (e.code === 'KeyJ' || e.code === 'ShiftLeft') cmdDash();
-  if (e.code === 'KeyK' || e.code === 'KeyE') cmdShift();
+  audio.init();
+  if (e.repeat) return;
+  if (e.code === 'ArrowLeft' || e.code === 'KeyA') input.left = true;
+  if (e.code === 'ArrowRight' || e.code === 'KeyD') input.right = true;
+  if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+    input.jumpPressed = true;
+    input.jumpHeld = true;
+    hero.jumpBufferTimer = CONSTANTS.jumpBufferMax;
+  }
+  if (e.code === 'KeyJ' || e.code === 'ShiftLeft') input.dashTrigger = true;
+  if (e.code === 'KeyK' || e.code === 'KeyE') input.shiftTrigger = true;
+  if (e.code === 'Escape' || e.code === 'KeyP') togglePause();
 });
 
 window.addEventListener('keyup', (e) => {
-  if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = false;
-  if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = false;
+  if (e.code === 'ArrowLeft' || e.code === 'KeyA') input.left = false;
+  if (e.code === 'ArrowRight' || e.code === 'KeyD') input.right = false;
+  if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') input.jumpHeld = false;
 });
 
-function cmdJump() {
-  if (!sys.running) return;
-  hero.buffer = 8;
+window.addEventListener('blur', () => {
+  input.left = false;
+  input.right = false;
+  input.jumpHeld = false;
+});
+
+// ==========================================
+// 7. ميكانيكيات اللعبة والفيزياء (Gameplay Core)
+// ==========================================
+function checkAABB(a, b) {
+  return a.x < b.x + b.w &&
+         a.x + a.w > b.x &&
+         a.y < b.y + b.h &&
+         a.y + a.h > b.y;
 }
 
-function cmdDash() {
-  if (!sys.running || !hero.canDash || hero.isDashing) return;
-  hero.isDashing = true;
-  hero.canDash = false;
-  hero.dashTime = 12;
-  hero.dashDir = hero.facing;
-  hero.vy = 0;
-  fx('dash');
-  haptic(45);
-  sys.shake = 10;
-  sys.flash = 0.35; // وميض أبيض سينمائي
-  hero.scaleX = 1.45;
-  hero.scaleY = 0.65;
-  addFx(hero.x + hero.w/2, hero.y + hero.h/2, '#f59e0b', 16);
+function getActiveSolids(forDimension = sys.dimension) {
+  const lvl = levels[sys.level];
+  const solids = [];
+  const all = [...lvl.platforms, ...lvl.moving];
+  for (let i = 0; i < all.length; i++) {
+    const p = all[i];
+    if (p.d === 'BOTH' || p.d === forDimension) {
+      solids.push(p);
+    }
+  }
+  return solids;
 }
 
-function cmdShift() {
-  if (!sys.running) return;
-  sys.dimension = (sys.dimension === 'REAL') ? 'GLITCH' : 'REAL';
-  sys.shake = 12;
-  sys.chromatic = 14;
-  fx('shift');
-  haptic(35);
+// حماية تبديل الأبعاد من الاحتجاز والتشوه الفيزيائي
+function safeDimensionShift() {
+  const nextDim = (sys.dimension === 'REAL') ? 'GLITCH' : 'REAL';
+  const candidateSolids = getActiveSolids(nextDim);
 
-  const col = (sys.dimension === 'REAL') ? '#00f0ff' : '#ff007f';
-  addFx(hero.x + hero.w/2, hero.y + hero.h/2, col, 24);
+  // فحص ما إذا كان الموضع الحالي شاغراً في البعد الجديد
+  let hasOverlap = false;
+  for (let i = 0; i < candidateSolids.length; i++) {
+    if (checkAABB(hero, candidateSolids[i])) {
+      hasOverlap = true;
+      break;
+    }
+  }
 
-  const b = document.getElementById('dim-badge');
+  // إذا كان هناك تداخل، نبحث عن إزاحة آمنة طفيفة
+  let safeOffset = null;
+  if (hasOverlap) {
+    const offsets = [
+      { x: 0, y: -hero.h },
+      { x: 0, y: 16 },
+      { x: -hero.w, y: 0 },
+      { x: hero.w, y: 0 }
+    ];
+    for (let o of offsets) {
+      const testBox = { x: hero.x + o.x, y: hero.y + o.y, w: hero.w, h: hero.h };
+      let free = true;
+      for (let s of candidateSolids) {
+        if (checkAABB(testBox, s)) {
+          free = false;
+          break;
+        }
+      }
+      if (free) {
+        safeOffset = o;
+        break;
+      }
+    }
+    // إذا لم نجد مكاناً آمناً، نلغي التبديل ونطلق إنذاراً
+    if (!safeOffset) {
+      audio.play('shift_denied');
+      triggerHaptic(50);
+      return;
+    }
+  }
+
+  // تطبيق التبديل بأمان
+  if (safeOffset) {
+    hero.x += safeOffset.x;
+    hero.y += safeOffset.y;
+  }
+  sys.dimension = nextDim;
+  sys.shake = CONFIG.shake ? 8 : 0;
+  audio.play('shift');
+  triggerHaptic(30);
+  emitParticles(hero.x + hero.w / 2, hero.y + hero.h / 2, sys.dimension === 'REAL' ? '#00f0ff' : '#ff007f', 20);
+
+  const badge = document.getElementById('dim-badge');
   if (sys.dimension === 'REAL') {
-    b.innerText = '✦ الواقع [REALITY]';
-    b.style.color = '#00f0ff';
-    b.style.borderColor = 'rgba(0, 240, 255, 0.4)';
+    badge.innerText = '✦ الواقع [REALITY]';
+    badge.classList.remove('glitch-mode');
   } else {
-    b.innerText = '✦ السايبر [GLITCH]';
-    b.style.color = '#ff007f';
-    b.style.borderColor = 'rgba(255, 0, 127, 0.4)';
+    badge.innerText = '✦ السايبر [GLITCH]';
+    badge.classList.add('glitch-mode');
   }
 }
 
-// ==========================================
-// 6. المحرك الفيزيائي المتطور
-// ==========================================
-function startLevel(idx) {
+function triggerDash() {
+  if (!hero.canDash || hero.isDashing) return;
+  hero.isDashing = true;
+  hero.canDash = false;
+  hero.dashTimer = CONSTANTS.dashDuration;
+  hero.vx = hero.facing * CONSTANTS.dashSpeed;
+  hero.vy = 0;
+  hero.scaleX = 1.45;
+  hero.scaleY = 0.65;
+  sys.flash = 0.32;
+  sys.shake = CONFIG.shake ? 7 : 0;
+  audio.play('dash');
+  triggerHaptic(40);
+  emitParticles(hero.x + hero.w / 2, hero.y + hero.h / 2, '#f59e0b', 14);
+}
+
+function respawnHero() {
+  audio.play('death');
+  triggerHaptic(60);
+  sys.deaths++;
+  sys.levelDeaths++;
+  sys.shake = CONFIG.shake ? 16 : 0;
+  emitParticles(hero.x + hero.w / 2, hero.y + hero.h / 2, '#ef4444', 32, 1.8);
+
+  // إهمال مسار الشبح للمحاولة الفاشلة (عدم حفظ الموت كإعادة ناجحة)
+  currentGhostRecord = [];
+
+  const lvl = levels[sys.level];
+  hero.x = lvl.spawn.x;
+  hero.y = lvl.spawn.y;
+  hero.vx = 0;
+  hero.vy = 0;
+  hero.isDashing = false;
+  hero.canDash = true;
+
+  if (lvl.chaserSpeed > 0) {
+    chaser.x = lvl.spawn.x - 380;
+  }
+
+  if (lvl.boss) {
+    boss.hp = boss.maxHp;
+    boss.phase = 1;
+    boss.state = 'patrol';
+    boss.timer = 0;
+    boss.x = lvl.boss.spawnX;
+    boss.y = lvl.boss.spawnY;
+    document.getElementById('boss-hp-fill').style.width = '100%';
+  }
+}
+
+function loadLevel(idx) {
   sys.level = idx;
+  sys.activeLevelTime = 0;
+  sys.levelDeaths = 0;
+  sys.levelSplits = [];
+  currentGhostRecord = [];
+  activeReplayGhost = SAVE_STATE.ghostTrails[idx] ? [...SAVE_STATE.ghostTrails[idx]] : [];
+
   const lvl = levels[idx];
   hero.x = lvl.spawn.x;
   hero.y = lvl.spawn.y;
   hero.vx = 0;
   hero.vy = 0;
-  hero.jumps = 2;
+  hero.canDoubleJump = true;
   hero.canDash = true;
+  hero.isDashing = false;
   hero.ghosts = [];
   sys.dimension = 'REAL';
   sys.shards = 0;
@@ -641,386 +1116,481 @@ function startLevel(idx) {
   lvl.shards.forEach(s => s.collected = false);
   if (lvl.enemies) lvl.enemies.forEach(e => e.alive = true);
 
-  // إعداد الجدار الملاحق
-  chaser.x = lvl.spawn.x - 360;
-  chaser.speed = lvl.chaserSpeed || 1.2;
+  if (lvl.chaserSpeed > 0) {
+    chaser.x = lvl.spawn.x - 380;
+    chaser.speed = lvl.chaserSpeed;
+  } else {
+    chaser.x = -9999;
+  }
 
-  // حفظ مسار الشبح وتفريغ الذاكرة المؤقتة
-  echoTrail = [...currentRunTrail];
-  currentRunTrail = [];
-  echoIndex = 0;
+  const bossHUD = document.getElementById('boss-hud');
+  if (lvl.boss) {
+    boss.active = true;
+    boss.hp = boss.maxHp;
+    boss.phase = 1;
+    boss.state = 'patrol';
+    boss.x = lvl.boss.spawnX;
+    boss.y = lvl.boss.spawnY;
+    bossHUD.style.display = 'block';
+    document.getElementById('boss-hp-fill').style.width = '100%';
+  } else {
+    boss.active = false;
+    bossHUD.style.display = 'none';
+  }
 
   for (let i = 0; i < hero.scarf.length; i++) {
     hero.scarf[i].x = hero.x;
     hero.scarf[i].y = hero.y + 10;
   }
 
-  cam.x = hero.x - W / 2;
-  cam.y = hero.y - H / 2;
+  cam.x = hero.x - viewW / 2;
+  cam.y = hero.y - viewH / 2;
 
-  document.getElementById('lvl-badge').innerText = `المستوى: ${idx + 1} / ${levels.length}`;
-  const b = document.getElementById('dim-badge');
-  b.innerText = '✦ الواقع [REALITY]';
-  b.style.color = '#00f0ff';
-  b.style.borderColor = 'rgba(0, 240, 255, 0.4)';
+  document.getElementById('hud-level').innerText = `المرحلة: ${idx + 1} / ${levels.length}`;
+  const badge = document.getElementById('dim-badge');
+  badge.innerText = '✦ الواقع [REALITY]';
+  badge.classList.remove('glitch-mode');
+  document.getElementById('hud-delta').style.display = 'none';
 }
 
-function killPlayer() {
-  fx('death');
-  haptic(70);
-  sys.shake = 18;
-  sys.chromatic = 22;
-  sys.deaths++;
-  addFx(hero.x + hero.w/2, hero.y + hero.h/2, '#ef4444', 35, 1.6);
+// التحديث الفيزيائي الثابت (Fixed Timestep)
+let ghostSampleTimer = 0;
 
+function fixedPhysics(dt) {
   const lvl = levels[sys.level];
 
-  // تحويل المسار الحالي لطيف موتى سابق
-  echoTrail = [...currentRunTrail];
-  currentRunTrail = [];
-  echoIndex = 0;
+  // احتساب زمن اللعب الصافي للمرحلة الحالية فقط
+  sys.activeLevelTime += dt;
 
-  // إعادة فورية للبداية دون انقطاع
-  hero.x = lvl.spawn.x;
-  hero.y = lvl.spawn.y;
-  hero.vx = 0;
-  hero.vy = 0;
-  hero.isDashing = false;
-  hero.canDash = true;
-  chaser.x = lvl.spawn.x - 360;
-}
+  // تسجيل مسار الشبح كل 30 ميلي ثانية
+  ghostSampleTimer += dt;
+  if (ghostSampleTimer >= 0.03) {
+    ghostSampleTimer = 0;
+    currentGhostRecord.push({
+      t: sys.activeLevelTime,
+      x: hero.x,
+      y: hero.y,
+      dim: sys.dimension,
+      facing: hero.facing
+    });
+  }
 
-function updatePhysics() {
-  const lvl = levels[sys.level];
+  // حساب الفارق الزمني عن أفضل مسار مسجل (Delta Split)
+  if (SAVE_STATE.bestTimes[sys.level]) {
+    const deltaEl = document.getElementById('hud-delta');
+    const bestT = SAVE_STATE.bestTimes[sys.level] / 1000;
+    const diff = sys.activeLevelTime - bestT;
+    if (diff <= 0) {
+      deltaEl.className = 'ahead';
+      deltaEl.innerText = diff.toFixed(2);
+    } else {
+      deltaEl.className = 'behind';
+      deltaEl.innerText = '+' + diff.toFixed(2);
+    }
+  }
 
-  // إدارة التباطؤ الحرج (Bullet Time / SlowMo)
+  // التباطؤ الحرج
   if (sys.slowMoTimer > 0) {
-    sys.slowMoTimer--;
+    sys.slowMoTimer -= dt;
     sys.timeScale = 0.5;
   } else {
     sys.timeScale = 1.0;
   }
+  const effDt = dt * sys.timeScale;
 
-  // تسجيل مسار اللاعب كل 3 إطارات للشبح
-  if (Math.floor(performance.now() / 16) % 3 === 0) {
-    currentRunTrail.push({ x: hero.x, y: hero.y, dim: sys.dimension });
+  // معالجة الأوامر الفورية
+  if (input.shiftTrigger) {
+    safeDimensionShift();
+    input.shiftTrigger = false;
+  }
+  if (input.dashTrigger) {
+    triggerDash();
+    input.dashTrigger = false;
   }
 
-  // تحريك الجدار الملاحق المتسارع
-  chaser.x += chaser.speed * sys.timeScale;
-  if (hero.x < chaser.x) {
-    killPlayer();
-    return;
+  // جدار المطاردة
+  if (lvl.chaserSpeed > 0) {
+    chaser.x += lvl.chaserSpeed * 60 * effDt;
+    if (hero.x < chaser.x) {
+      respawnHero();
+      return;
+    }
   }
 
-  // تحريك المنصات
+  // المنصات المتحركة
   if (lvl.moving) {
     lvl.moving.forEach(m => {
-      m.x += (m.spd * m.dir) * sys.timeScale;
+      m.x += (m.spd * m.dir) * 60 * effDt;
       if (m.x > m.maxX) { m.x = m.maxX; m.dir = -1; }
       if (m.x < m.minX) { m.x = m.minX; m.dir = 1; }
     });
   }
 
-  // منطق الأعداء مع كشف الاقتراب الحرج (Near-Miss)
+  // دوريات الأعداء
   if (lvl.enemies) {
     lvl.enemies.forEach(en => {
       if (!en.alive) return;
-      en.x += (en.spd * en.dir) * sys.timeScale;
+      if (en.d !== 'BOTH' && en.d !== sys.dimension) return;
+
+      en.x += (en.spd * en.dir) * 60 * effDt;
       if (en.x > en.maxX) { en.x = en.maxX; en.dir = -1; }
       if (en.x < en.minX) { en.x = en.minX; en.dir = 1; }
 
-      // تصادم مباشر
-      if (isOverlap(hero, en)) {
-        if (hero.vy > 2 || hero.isDashing) {
+      if (checkAABB(hero, en)) {
+        if (hero.vy > 1.2 || hero.isDashing) {
           en.alive = false;
-          fx('hit');
-          haptic(40);
-          sys.shake = 10;
-          addFx(en.x + en.w/2, en.y + en.h/2, '#00f0ff', 22);
-          hero.vy = -8.5;
+          audio.play('hit');
+          triggerHaptic(35);
+          sys.shake = CONFIG.shake ? 8 : 0;
+          emitParticles(en.x + en.w / 2, en.y + en.h / 2, '#00f0ff', 22);
+          hero.vy = CONSTANTS.jumpForce * 0.72;
           hero.canDash = true;
         } else {
-          killPlayer();
+          respawnHero();
+          return;
         }
       } else {
-        // ميكانيكا الهروب الحرج من العدو
-        const dist = Math.hypot((hero.x + hero.w/2) - (en.x + en.w/2), (hero.y + hero.h/2) - (en.y + en.h/2));
-        if (dist < 42 && sys.slowMoTimer <= 0) {
-          sys.slowMoTimer = 14;
-          fx('slowmo');
-          haptic(15);
+        const d = Math.hypot((hero.x + hero.w / 2) - (en.x + en.w / 2), (hero.y + hero.h / 2) - (en.y + en.h / 2));
+        if (d < 44 && sys.slowMoTimer <= 0) {
+          sys.slowMoTimer = 0.2;
+          triggerHaptic(15);
         }
       }
     });
   }
 
-  // فيزياء الاندفاع Dash
-  if (hero.isDashing) {
-    hero.vx = hero.dashDir * 15 * sys.timeScale;
-    hero.vy = 0;
-    hero.dashTime--;
-    hero.ghosts.push({ x: hero.x, y: hero.y, alpha: 0.7, color: '#f59e0b' });
-    if (hero.dashTime <= 0) hero.isDashing = false;
-  } else {
-    // حركة أفقية
-    if (keys.left) {
-      hero.vx = -hero.speed * sys.timeScale;
-      hero.facing = -1;
-    } else if (keys.right) {
-      hero.vx = hero.speed * sys.timeScale;
-      hero.facing = 1;
-    } else {
-      hero.vx *= 0.72;
+  // ذكاء الزعيم
+  if (boss.active) {
+    if (boss.invulnTimer > 0) boss.invulnTimer -= effDt;
+    boss.timer += effDt;
+
+    if (boss.state === 'patrol') {
+      boss.x += (boss.dir * 2.6 * (boss.phase === 2 ? 1.35 : 1.0)) * 60 * effDt;
+      if (boss.x > 1800) { boss.x = 1800; boss.dir = -1; }
+      if (boss.x < 400) { boss.x = 400; boss.dir = 1; }
+      if (boss.timer > 3.2) {
+        boss.state = 'telegraph';
+        boss.timer = 0;
+      }
+    } else if (boss.state === 'telegraph') {
+      if (boss.timer > 0.7) {
+        boss.state = 'charge';
+        boss.timer = 0;
+        boss.dir = (hero.x < boss.x) ? -1 : 1;
+      }
+    } else if (boss.state === 'charge') {
+      boss.x += (boss.dir * 8.2) * 60 * effDt;
+      if (boss.x > 1950 || boss.x < 250 || boss.timer > 1.3) {
+        boss.state = 'vulnerable';
+        boss.timer = 0;
+      }
+    } else if (boss.state === 'vulnerable') {
+      if (boss.timer > 1.8) {
+        boss.state = 'patrol';
+        boss.timer = 0;
+      }
     }
 
-    // تطبيق الجاذبية مع مراعاة الانزلاق على الجدران (Wall Sliding)
-    if (hero.isWallSliding && hero.vy > 0) {
-      hero.vy += 0.16 * sys.timeScale; // انزلاق بطيء
-      if (hero.vy > 2.8) hero.vy = 2.8;
-    } else {
-      hero.vy += 0.58 * sys.timeScale;
-      if (hero.vy > 13) hero.vy = 13;
+    if (checkAABB(hero, boss)) {
+      if ((hero.vy > 2.0 || hero.isDashing) && boss.state === 'vulnerable' && boss.invulnTimer <= 0) {
+        boss.hp -= 34;
+        boss.invulnTimer = 0.7;
+        audio.play('hit');
+        triggerHaptic(60);
+        sys.shake = CONFIG.shake ? 12 : 0;
+        emitParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, '#ff007f', 28, 2);
+        hero.vy = CONSTANTS.jumpForce * 0.8;
+        hero.canDash = true;
+
+        if (boss.hp <= 50 && boss.phase === 1) boss.phase = 2;
+        document.getElementById('boss-hp-fill').style.width = Math.max(0, (boss.hp / boss.maxHp) * 100) + '%';
+
+        if (boss.hp <= 0) {
+          boss.active = false;
+          unlockAchievement('boss_slayer');
+          document.getElementById('boss-hud').style.display = 'none';
+          emitParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, '#00f0ff', 50, 3);
+        }
+      } else if (boss.invulnTimer <= 0) {
+        respawnHero();
+        return;
+      }
     }
   }
 
-  hero.scaleX += (1 - hero.scaleX) * 0.15;
-  hero.scaleY += (1 - hero.scaleY) * 0.15;
+  // حركة البطل والجاذبية
+  if (hero.isDashing) {
+    hero.dashTimer -= effDt;
+    hero.ghosts.push({ x: hero.x, y: hero.y, alpha: 0.75, color: '#f59e0b' });
+    if (hero.dashTimer <= 0) hero.isDashing = false;
+  } else {
+    let targetVx = 0;
+    if (input.left) {
+      targetVx = -CONSTANTS.walkSpeed;
+      hero.facing = -1;
+    } else if (input.right) {
+      targetVx = CONSTANTS.walkSpeed;
+      hero.facing = 1;
+    }
+
+    const accel = hero.isGrounded ? (targetVx !== 0 ? CONSTANTS.runAccel : CONSTANTS.runDecel) : CONSTANTS.airAccel;
+    if (hero.vx < targetVx) hero.vx = Math.min(targetVx, hero.vx + accel * effDt);
+    else if (hero.vx > targetVx) hero.vx = Math.max(targetVx, hero.vx - accel * effDt);
+
+    if (hero.isWallSliding && hero.vy > 0) {
+      hero.vy = Math.min(CONSTANTS.wallSlideSpeed, hero.vy + (CONSTANTS.gravity * 0.3) * effDt);
+    } else {
+      hero.vy = Math.min(CONSTANTS.maxFall, hero.vy + CONSTANTS.gravity * effDt);
+    }
+  }
+
+  hero.scaleX += (1 - hero.scaleX) * 0.16;
+  hero.scaleY += (1 - hero.scaleY) * 0.16;
 
   if (hero.isGrounded) {
-    hero.coyote = 6;
-    hero.jumps = 2;
+    hero.coyoteTimer = CONSTANTS.coyoteMax;
+    hero.canDoubleJump = true;
     hero.canDash = true;
   } else {
-    if (hero.coyote > 0) hero.coyote--;
+    hero.coyoteTimer = Math.max(0, hero.coyoteTimer - effDt);
   }
 
-  // معالجة القفز وقفز الجدران المتقدم
-  if (hero.buffer > 0) {
+  if (hero.jumpBufferTimer > 0) hero.jumpBufferTimer -= effDt;
+
+  // القفز العادي وقفز الجدران
+  if (hero.jumpBufferTimer > 0) {
     if (hero.isWallSliding) {
-      // Wall Jump
-      hero.vy = hero.jumpForce * 0.94;
-      hero.vx = -hero.wallDir * (hero.speed * 1.35);
+      hero.vy = CONSTANTS.wallJumpY;
+      hero.vx = -hero.wallDir * CONSTANTS.wallJumpX;
       hero.facing = -hero.wallDir;
       hero.isWallSliding = false;
-      hero.buffer = 0;
+      hero.jumpBufferTimer = 0;
       hero.canDash = true;
       hero.scaleX = 0.75;
       hero.scaleY = 1.35;
-      fx('walljump');
-      addFx(hero.x + (hero.wallDir === 1 ? hero.w : 0), hero.y + hero.h/2, '#00f0ff', 12);
-    } else if (hero.coyote > 0) {
-      hero.vy = hero.jumpForce;
+      audio.play('walljump');
+      triggerHaptic(20);
+      emitParticles(hero.x + (hero.wallDir === 1 ? hero.w : 0), hero.y + hero.h / 2, '#00f0ff', 12);
+    } else if (hero.coyoteTimer > 0) {
+      hero.vy = CONSTANTS.jumpForce;
       hero.isGrounded = false;
-      hero.coyote = 0;
-      hero.buffer = 0;
-      hero.scaleX = 0.75;
-      hero.scaleY = 1.35;
-      fx('jump');
-      addFx(hero.x + hero.w/2, hero.y + hero.h, '#fff', 8);
-    } else if (hero.jumps > 1) {
-      hero.vy = hero.jumpForce * 0.94;
-      hero.jumps--;
-      hero.buffer = 0;
+      hero.coyoteTimer = 0;
+      hero.jumpBufferTimer = 0;
+      hero.scaleX = 0.76;
+      hero.scaleY = 1.34;
+      audio.play('jump');
+      triggerHaptic(20);
+      emitParticles(hero.x + hero.w / 2, hero.y + hero.h, '#ffffff', 8);
+    } else if (hero.canDoubleJump) {
+      hero.vy = CONSTANTS.jumpForce * 0.92;
+      hero.canDoubleJump = false;
+      hero.jumpBufferTimer = 0;
       hero.scaleX = 0.8;
       hero.scaleY = 1.3;
-      fx('doublejump');
-      addFx(hero.x + hero.w/2, hero.y + hero.h, '#00f0ff', 12);
+      audio.play('jump');
+      triggerHaptic(25);
+      emitParticles(hero.x + hero.w / 2, hero.y + hero.h, '#00f0ff', 12);
     }
-    hero.buffer--;
   }
 
-  // تصادم المنصات الأفقي ورصد الجدران للانزلاق
-  hero.x += hero.vx;
-  const solids = [...lvl.platforms, ...(lvl.moving || [])];
+  if (!input.jumpHeld && hero.vy < -3.0 && !hero.isDashing) {
+    hero.vy += 30.0 * effDt;
+  }
+
+  // التصادم الأفقي
+  hero.x += hero.vx * 60 * effDt;
+  const solids = getActiveSolids();
   hero.isWallSliding = false;
   hero.wallDir = 0;
 
-  solids.forEach(p => {
-    if (p.d === 'BOTH' || p.d === sys.dimension) {
-      if (isOverlap(hero, p)) {
-        if (hero.vx > 0) {
-          hero.x = p.x - hero.w;
-          if (!hero.isGrounded && hero.vy > 0) {
-            hero.isWallSliding = true;
-            hero.wallDir = 1;
-          }
-        } else if (hero.vx < 0) {
-          hero.x = p.x + p.w;
-          if (!hero.isGrounded && hero.vy > 0) {
-            hero.isWallSliding = true;
-            hero.wallDir = -1;
-          }
+  for (let i = 0; i < solids.length; i++) {
+    const p = solids[i];
+    if (checkAABB(hero, p)) {
+      if (hero.vx > 0) {
+        hero.x = p.x - hero.w;
+        if (!hero.isGrounded && hero.vy > 0) {
+          hero.isWallSliding = true;
+          hero.wallDir = 1;
         }
-        hero.vx = 0;
-        hero.isDashing = false;
+      } else if (hero.vx < 0) {
+        hero.x = p.x + p.w;
+        if (!hero.isGrounded && hero.vy > 0) {
+          hero.isWallSliding = true;
+          hero.wallDir = -1;
+        }
       }
+      hero.vx = 0;
+      hero.isDashing = false;
     }
-  });
+  }
 
-  // الحركة والتصادم الرأسي
-  hero.y += hero.vy;
+  // التصادم الرأسي
+  hero.y += hero.vy * 60 * effDt;
   const wasGrounded = hero.isGrounded;
   hero.isGrounded = false;
 
-  solids.forEach(p => {
-    if (p.d === 'BOTH' || p.d === sys.dimension) {
-      if (isOverlap(hero, p)) {
-        if (hero.vy > 0) {
-          hero.y = p.y - hero.h;
-          hero.vy = 0;
-          hero.isGrounded = true;
-          if (!wasGrounded) {
-            hero.scaleX = 1.3;
-            hero.scaleY = 0.7;
-          }
-        } else if (hero.vy < 0) {
-          hero.y = p.y + p.h;
-          hero.vy = 0;
+  for (let i = 0; i < solids.length; i++) {
+    const p = solids[i];
+    if (checkAABB(hero, p)) {
+      if (hero.vy > 0) {
+        hero.y = p.y - hero.h;
+        hero.vy = 0;
+        hero.isGrounded = true;
+        if (!wasGrounded) {
+          hero.scaleX = 1.25;
+          hero.scaleY = 0.75;
         }
+      } else if (hero.vy < 0) {
+        hero.y = p.y + p.h;
+        hero.vy = 0;
       }
     }
-  });
+  }
 
-  // تحديث الوشاح الفيزيائي
-  const neckX = hero.x + (hero.facing === 1 ? 6 : 20);
+  // الوشاح
+  const neckX = hero.x + (hero.facing === 1 ? 5 : 19);
   const neckY = hero.y + 12;
   hero.scarf[0].x = neckX;
   hero.scarf[0].y = neckY;
   for (let i = 1; i < hero.scarf.length; i++) {
     const cur = hero.scarf[i];
     const prev = hero.scarf[i - 1];
-    cur.x += (prev.x - cur.x) * 0.45 - (hero.facing * 1.5);
-    cur.y += (prev.y - cur.y) * 0.45 + 0.8;
+    cur.x += (prev.x - cur.x) * 0.42 - (hero.facing * 1.5);
+    cur.y += (prev.y - cur.y) * 0.42 + 0.8;
   }
 
-  // فحص الأفخاخ والموت
+  // الأفخاخ
   lvl.hazards.forEach(h => {
     if (h.d === 'BOTH' || h.d === sys.dimension) {
-      if (isOverlap(hero, h)) killPlayer();
+      if (checkAABB(hero, h)) respawnHero();
     }
   });
-  if (hero.y > lvl.h + 80) killPlayer();
+  if (hero.y > lvl.h + 80) respawnHero();
 
   // جمع الشظايا
   lvl.shards.forEach(s => {
-    if (!s.collected && isOverlap(hero, { x: s.x - 16, y: s.y - 16, w: 32, h: 32 })) {
+    if (!s.collected && checkAABB(hero, { x: s.x - 16, y: s.y - 16, w: 32, h: 32 })) {
       s.collected = true;
       sys.shards++;
-      fx('shard');
-      haptic(25);
-      addFx(s.x, s.y, '#fbbf24', 16);
+      sys.levelSplits.push(sys.activeLevelTime);
+      audio.play('shard');
+      triggerHaptic(25);
+      emitParticles(s.x, s.y, '#fbbf24', 16);
+      if (sys.shards >= sys.totalShards) unlockAchievement('shard_master');
     }
   });
 
-  // مخرج المرحلة
+  // الخروج وإنهاء المرحلة
   const ex = lvl.exit;
-  if (isOverlap(hero, { x: ex.x, y: ex.y, w: 38, h: 62 })) {
-    if (sys.shards >= sys.totalShards) {
-      if (sys.level + 1 < levels.length) {
-        startLevel(sys.level + 1);
-      } else {
-        winGame();
-      }
-    }
+  const canExit = (sys.shards >= sys.totalShards) && (!boss.active);
+  if (canExit && checkAABB(hero, { x: ex.x, y: ex.y, w: 38, h: 62 })) {
+    completeLevelSuccess();
   }
 
-  // تحديث الأشباح
+  // أشباح الاندفاع
   for (let i = hero.ghosts.length - 1; i >= 0; i--) {
     hero.ghosts[i].alpha -= 0.08;
     if (hero.ghosts[i].alpha <= 0) hero.ghosts.splice(i, 1);
   }
 
-  // تحديث الكاميرا
-  cam.targetX = hero.x - W / 2 + hero.w / 2;
-  cam.targetY = hero.y - H / 2 + hero.h / 2;
-  cam.x += (cam.targetX - cam.x) * cam.k;
-  cam.y += (cam.targetY - cam.y) * cam.k;
-  cam.x = Math.max(0, Math.min(cam.x, lvl.w - W));
-  cam.y = Math.max(0, Math.min(cam.y, lvl.h - H));
+  // الكاميرا
+  cam.targetX = hero.x - viewW / 2 + hero.w / 2;
+  cam.targetY = hero.y - viewH / 2 + hero.h / 2;
+  cam.x += (cam.targetX - cam.x) * cam.smooth;
+  cam.y += (cam.targetY - cam.y) * cam.smooth;
+  cam.x = Math.max(0, Math.min(cam.x, lvl.w - viewW));
+  cam.y = Math.max(0, Math.min(cam.y, lvl.h - viewH));
 
-  // تحديث الـ HUD
-  const elapsed = performance.now() - sys.timeStart;
-  const m = String(Math.floor(elapsed / 60000)).padStart(2, '0');
-  const s = String(Math.floor((elapsed % 60000) / 1000)).padStart(2, '0');
-  const ms = String(Math.floor((elapsed % 1000) / 10)).padStart(2, '0');
-  document.getElementById('stats-badge').innerText = `💀 ${sys.deaths} | 💎 ${sys.shards}/${sys.totalShards} | ⏱️ ${m}:${s}.${ms}`;
-}
+  // تحديث الجسيمات
+  for (let i = 0; i < MAX_PARTICLES; i++) {
+    const p = particles[i];
+    if (p.active) {
+      p.x += p.vx * 60 * effDt;
+      p.y += p.vy * 60 * effDt;
+      p.life += effDt;
+      if (p.life >= p.maxLife) p.active = false;
+    }
+  }
 
-function isOverlap(a, b) {
-  return a.x < b.x + b.w &&
-         a.x + a.w > b.x &&
-         a.y < b.y + b.h &&
-         a.y + a.h > b.y;
+  // تحديث HUD
+  const m = String(Math.floor(sys.activeLevelTime / 60)).padStart(2, '0');
+  const s = String(Math.floor(sys.activeLevelTime % 60)).padStart(2, '0');
+  const ms = String(Math.floor((sys.activeLevelTime * 100) % 100)).padStart(2, '0');
+  document.getElementById('hud-stats').innerText = `💀 ${sys.deaths} | 💎 ${sys.shards}/${sys.totalShards} | ⏱️ ${m}:${s}.${ms}`;
 }
 
 // ==========================================
-// 7. محرك الرسم، الإضاءة، وشبح الموت السابق
+// 8. محرك الرسم التنافسي (Renderer with Accessibility)
 // ==========================================
 function render() {
   ctx.save();
+  ctx.scale(dpr, dpr);
 
   let sx = 0, sy = 0;
-  if (sys.shake > 0) {
+  if (CONFIG.shake && sys.shake > 0) {
     sx = (Math.random() - 0.5) * sys.shake;
     sy = (Math.random() - 0.5) * sys.shake;
-    sys.shake *= 0.86;
+    sys.shake *= 0.88;
     if (sys.shake < 0.2) sys.shake = 0;
   }
-  if (sys.chromatic > 0) sys.chromatic *= 0.85;
-
-  ctx.translate(-cam.x + sx, -cam.y + sy);
+  ctx.translate(-Math.floor(cam.x + sx), -Math.floor(cam.y + sy));
 
   const lvl = levels[sys.level];
 
-  // الخلفية
-  if (sys.dimension === 'REAL') {
-    ctx.fillStyle = '#06070d';
-    ctx.fillRect(cam.x, cam.y, W, H);
-    drawGrid('#0e1526', 64, lvl.w, lvl.h);
-  } else {
-    ctx.fillStyle = '#0c0312';
-    ctx.fillRect(cam.x, cam.y, W, H);
-    drawGrid('#2a0733', 64, lvl.w, lvl.h);
+  // خلفية العوالم
+  ctx.fillStyle = (sys.dimension === 'REAL') ? '#04060d' : '#0c0211';
+  ctx.fillRect(cam.x, cam.y, viewW, viewH);
+  drawBackgroundGrid(lvl.w, lvl.h);
+
+  // رسم شبح المحاولة السابقة المعتمد على الزمن الحقيقي
+  if (CONFIG.ghost && activeReplayGhost.length > 0) {
+    let targetSample = null;
+    for (let i = 0; i < activeReplayGhost.length; i++) {
+      if (activeReplayGhost[i].t >= sys.activeLevelTime) {
+        targetSample = activeReplayGhost[i];
+        break;
+      }
+    }
+    if (targetSample) {
+      ctx.save();
+      ctx.globalAlpha = 0.32;
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillRect(targetSample.x, targetSample.y, hero.w, hero.h);
+      ctx.restore();
+    }
   }
 
-  // رسم طيف المحاولة السابقة (Echo Ghost)
-  if (echoTrail.length > 0 && echoIndex < echoTrail.length) {
-    const e = echoTrail[echoIndex];
+  // جدار المطاردة
+  if (lvl.chaserSpeed > 0 && chaser.x > -1000) {
     ctx.save();
-    ctx.globalAlpha = 0.35;
-    ctx.fillStyle = '#94a3b8';
-    ctx.fillRect(e.x, e.y, hero.w, hero.h);
+    const grad = ctx.createLinearGradient(chaser.x - 140, 0, chaser.x, 0);
+    grad.addColorStop(0, 'rgba(239, 68, 68, 0)');
+    grad.addColorStop(1, 'rgba(239, 68, 68, 0.65)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(chaser.x - 140, 0, 140, lvl.h);
+
+    ctx.strokeStyle = '#ef4444';
+    ctx.shadowColor = '#f43f5e';
+    ctx.shadowBlur = 20;
+    ctx.lineWidth = 3.5;
+    ctx.beginPath();
+    ctx.moveTo(chaser.x, 0);
+    ctx.lineTo(chaser.x, lvl.h);
+    ctx.stroke();
     ctx.restore();
-    echoIndex++;
   }
 
-  // رسم جدار الليزر الملاحق (The Chaser Wall)
-  ctx.save();
-  const gradChaser = ctx.createLinearGradient(chaser.x - 120, 0, chaser.x, 0);
-  gradChaser.addColorStop(0, 'rgba(239, 68, 68, 0.05)');
-  gradChaser.addColorStop(1, 'rgba(239, 68, 68, 0.7)');
-  ctx.fillStyle = gradChaser;
-  ctx.fillRect(chaser.x - 120, 0, 120, lvl.h);
+  // رسم المنصات مع تمييز رمزي للأبعاد (Visual Accessibility Patterns)
+  const allPlatforms = [...lvl.platforms, ...lvl.moving];
+  allPlatforms.forEach(p => {
+    // Frustum Culling
+    if (p.x + p.w < cam.x - 40 || p.x > cam.x + viewW + 40 || p.y + p.h < cam.y - 40 || p.y > cam.y + viewH + 40) return;
 
-  ctx.strokeStyle = '#ef4444';
-  ctx.shadowColor = '#f43f5e';
-  ctx.shadowBlur = 24;
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  ctx.moveTo(chaser.x, 0);
-  ctx.lineTo(chaser.x, lvl.h);
-  ctx.stroke();
-  ctx.restore();
-
-  // رسم المنصات
-  const solids = [...lvl.platforms, ...(lvl.moving || [])];
-  solids.forEach(p => {
     const active = (p.d === 'BOTH' || p.d === sys.dimension);
     ctx.save();
     if (!active) {
       ctx.globalAlpha = 0.15;
-      ctx.strokeStyle = '#94a3b8';
+      ctx.strokeStyle = '#64748b';
       ctx.lineWidth = 1.5;
       ctx.setLineDash([4, 4]);
       ctx.strokeRect(p.x, p.y, p.w, p.h);
@@ -1033,13 +1603,23 @@ function render() {
       } else if (p.d === 'REAL') {
         ctx.fillStyle = '#0284c7';
         ctx.shadowColor = '#00f0ff';
-        ctx.shadowBlur = 12;
+        ctx.shadowBlur = 10;
         ctx.fillRect(p.x, p.y, p.w, p.h);
+        // رمز الصلابة لبعد الواقع: خطوط أفقية
+        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+        ctx.fillRect(p.x + 4, p.y + 4, p.w - 8, 3);
       } else {
         ctx.fillStyle = '#db2777';
         ctx.shadowColor = '#ff007f';
-        ctx.shadowBlur = 14;
+        ctx.shadowBlur = 12;
         ctx.fillRect(p.x, p.y, p.w, p.h);
+        // رمز الخلل للسايبر: خطوط متقطعة مائلة
+        ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(p.x + 4, p.y + p.h - 4);
+        ctx.lineTo(p.x + p.w - 4, p.y + 4);
+        ctx.stroke();
       }
     }
     ctx.restore();
@@ -1048,11 +1628,11 @@ function render() {
   // رسم الأعداء
   if (lvl.enemies) {
     lvl.enemies.forEach(en => {
-      if (!en.alive) return;
+      if (!en.alive || (en.d !== 'BOTH' && en.d !== sys.dimension)) return;
       ctx.save();
       ctx.fillStyle = '#ff0055';
       ctx.shadowColor = '#ff0055';
-      ctx.shadowBlur = 15;
+      ctx.shadowBlur = 12;
       ctx.fillRect(en.x, en.y, en.w, en.h);
       ctx.fillStyle = '#fff';
       const eyeX = (en.dir === 1) ? en.x + en.w - 7 : en.x + 3;
@@ -1061,13 +1641,26 @@ function render() {
     });
   }
 
-  // رسم الأفخاخ
+  // رسم الزعيم
+  if (boss.active) {
+    ctx.save();
+    ctx.fillStyle = (boss.state === 'vulnerable') ? '#fbbf24' : '#ff0055';
+    ctx.shadowColor = ctx.fillStyle;
+    ctx.shadowBlur = 20;
+    ctx.fillRect(boss.x, boss.y, boss.w, boss.h);
+    ctx.fillStyle = '#ffffff';
+    const bEyeX = (boss.dir === 1) ? boss.x + boss.w - 12 : boss.x + 6;
+    ctx.fillRect(bEyeX, boss.y + 14, 8, 8);
+    ctx.restore();
+  }
+
+  // الأفخاخ
   lvl.hazards.forEach(h => {
     if (h.d === 'BOTH' || h.d === sys.dimension) {
       ctx.save();
       ctx.fillStyle = '#ef4444';
       ctx.shadowColor = '#f43f5e';
-      ctx.shadowBlur = 14;
+      ctx.shadowBlur = 12;
       const count = Math.floor(h.w / 16);
       for (let i = 0; i < count; i++) {
         ctx.beginPath();
@@ -1080,29 +1673,29 @@ function render() {
     }
   });
 
-  // رسم الكريستالات
+  // الشظايا
   lvl.shards.forEach(s => {
     if (!s.collected) {
       ctx.save();
       ctx.fillStyle = '#fbbf24';
       ctx.shadowColor = '#f59e0b';
-      ctx.shadowBlur = 18;
-      const wave = Math.sin(performance.now() * 0.007) * 5;
+      ctx.shadowBlur = 14;
+      const wave = Math.sin(performance.now() * 0.006) * 4;
       ctx.beginPath();
-      ctx.arc(s.x, s.y + wave, 10, 0, Math.PI * 2);
+      ctx.arc(s.x, s.y + wave, 9, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     }
   });
 
-  // بوابة الخروج
+  // البوابة
   const ex = lvl.exit;
-  const opened = sys.shards >= sys.totalShards;
+  const opened = (sys.shards >= sys.totalShards) && (!boss.active);
   ctx.save();
   ctx.strokeStyle = opened ? '#10b981' : '#475569';
   ctx.lineWidth = 3.5;
   ctx.shadowColor = opened ? '#34d399' : 'transparent';
-  ctx.shadowBlur = 20;
+  ctx.shadowBlur = 18;
   ctx.strokeRect(ex.x, ex.y, 38, 62);
   if (opened) {
     ctx.fillStyle = 'rgba(16, 185, 129, 0.25)';
@@ -1110,7 +1703,7 @@ function render() {
   }
   ctx.restore();
 
-  // أشباح الـ Dash
+  // أشباح الاندفاع
   hero.ghosts.forEach(g => {
     ctx.save();
     ctx.globalAlpha = g.alpha;
@@ -1121,7 +1714,7 @@ function render() {
 
   // الوشاح
   ctx.save();
-  ctx.strokeStyle = (sys.dimension === 'REAL') ? '#00f0ff' : '#ff007f';
+  ctx.strokeStyle = CONFIG.selectedScarf;
   ctx.lineWidth = 4;
   ctx.lineCap = 'round';
   ctx.beginPath();
@@ -1132,131 +1725,237 @@ function render() {
   ctx.stroke();
   ctx.restore();
 
-  // رسم اللاعب والانضغاط الحركي
+  // البطل
   ctx.save();
   ctx.translate(hero.x + hero.w / 2, hero.y + hero.h / 2);
   ctx.scale(hero.scaleX, hero.scaleY);
   ctx.fillStyle = '#ffffff';
   ctx.shadowColor = (sys.dimension === 'REAL') ? '#00f0ff' : '#ff007f';
-  ctx.shadowBlur = 16;
+  ctx.shadowBlur = 14;
   ctx.fillRect(-hero.w / 2, -hero.h / 2, hero.w, hero.h);
 
-  // النظارة
   ctx.fillStyle = (sys.dimension === 'REAL') ? '#00f0ff' : '#ff007f';
   const eyeX = (hero.facing === 1) ? 2 : -8;
   ctx.fillRect(eyeX, -hero.h / 2 + 8, 7, 5);
   ctx.restore();
 
-  // الجزيئات
-  for (let i = fxParticles.length - 1; i >= 0; i--) {
-    const pt = fxParticles[i];
-    pt.x += pt.vx;
-    pt.y += pt.vy;
-    pt.life -= pt.decay;
-    if (pt.life <= 0) {
-      fxParticles.splice(i, 1);
-      continue;
+  // الجسيمات
+  for (let i = 0; i < MAX_PARTICLES; i++) {
+    const p = particles[i];
+    if (p.active) {
+      ctx.save();
+      ctx.globalAlpha = 1 - (p.life / p.maxLife);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(p.x, p.y, p.size, p.size);
+      ctx.restore();
     }
-    ctx.save();
-    ctx.globalAlpha = pt.life;
-    ctx.fillStyle = pt.color;
-    ctx.fillRect(pt.x, pt.y, 3.5, 3.5);
-    ctx.restore();
   }
 
-  // الإضاءة الديناميكية
-  const grad = ctx.createRadialGradient(
-    hero.x + hero.w/2, hero.y + hero.h/2, 20,
-    hero.x + hero.w/2, hero.y + hero.h/2, 280
-  );
-  grad.addColorStop(0, 'rgba(0,0,0,0)');
-  grad.addColorStop(1, 'rgba(2, 3, 6, 0.45)');
-  ctx.fillStyle = grad;
-  ctx.fillRect(cam.x, cam.y, W, H);
-
-  // وميض الـ Dash السينمائي (Impact Flash)
+  // وميض الاندفاع
   if (sys.flash > 0) {
     ctx.fillStyle = `rgba(255, 255, 255, ${sys.flash})`;
-    ctx.fillRect(cam.x, cam.y, W, H);
-    sys.flash -= 0.05;
+    ctx.fillRect(cam.x, cam.y, viewW, viewH);
+    sys.flash -= 0.04;
   }
 
   ctx.restore();
 }
 
-function drawGrid(col, step, maxW, maxH) {
+function drawBackgroundGrid(maxW, maxH) {
   ctx.save();
-  ctx.strokeStyle = col;
+  ctx.strokeStyle = (sys.dimension === 'REAL') ? '#0d1424' : '#22052b';
   ctx.lineWidth = 1;
+  const step = 64;
   for (let x = 0; x < maxW; x += step) {
-    ctx.beginPath();
-    ctx.moveTo(x, 0); ctx.lineTo(x, maxH);
-    ctx.stroke();
+    if (x >= cam.x - step && x <= cam.x + viewW + step) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0); ctx.lineTo(x, maxH);
+      ctx.stroke();
+    }
   }
   for (let y = 0; y < maxH; y += step) {
-    ctx.beginPath();
-    ctx.moveTo(0, y); ctx.lineTo(maxW, y);
-    ctx.stroke();
+    if (y >= cam.y - step && y <= cam.y + viewH + step) {
+      ctx.beginPath();
+      ctx.moveTo(0, y); ctx.lineTo(maxW, y);
+      ctx.stroke();
+    }
   }
   ctx.restore();
 }
 
 // ==========================================
-// 8. الحلقة الرئيسية ونظام الرتب العالمي
+// 9. الحلقة المركزية للعبة (Fixed Step Runner)
 // ==========================================
-function engineLoop() {
-  if (sys.running) {
-    updatePhysics();
+let lastTime = performance.now();
+let accumulator = 0;
+
+function engineLoop(now) {
+  let delta = (now - lastTime) / 1000;
+  if (delta > CONSTANTS.maxAccum) delta = CONSTANTS.maxAccum;
+  lastTime = now;
+
+  if (sys.running && !sys.paused) {
+    accumulator += delta;
+    while (accumulator >= CONSTANTS.fixedStep) {
+      fixedPhysics(CONSTANTS.fixedStep);
+      accumulator -= CONSTANTS.fixedStep;
+    }
   }
+
   render();
   requestAnimationFrame(engineLoop);
 }
 
-function calculateRank(totalTimeMs, deaths) {
-  const seconds = totalTimeMs / 1000;
-  if (deaths === 0 && seconds < 60) return { rank: 'S+', title: 'أسطورة السايبر المطلقة!' };
-  if (deaths <= 3 && seconds < 90) return { rank: 'S', title: 'خبير الأبعاد الخارق' };
-  if (deaths <= 8 && seconds < 130) return { rank: 'A', title: 'عدّاء محترف' };
-  if (deaths <= 15) return { rank: 'B', title: 'مقاتل صامد' };
+// ==========================================
+// 10. التقييم والنتائج والتنقل (Tournament Flow)
+// ==========================================
+function evaluatePerformance(timeSeconds, deaths) {
+  if (deaths === 0 && timeSeconds < 55) return { rank: 'S+', title: 'أسطورة السايبر التنافسية!' };
+  if (deaths <= 2 && timeSeconds < 85) return { rank: 'S', title: 'خبير الأبعاد الخارق' };
+  if (deaths <= 6 && timeSeconds < 120) return { rank: 'A', title: 'عدّاء رقمي محترف' };
+  if (deaths <= 12) return { rank: 'B', title: 'مقاتل صامد' };
   return { rank: 'C', title: 'ناجٍ بصعوبة' };
 }
 
-function winGame() {
-  sys.running = false;
-  const elapsed = performance.now() - sys.timeStart;
-  const m = String(Math.floor(elapsed / 60000)).padStart(2, '0');
-  const s = String(Math.floor((elapsed % 60000) / 1000)).padStart(2, '0');
-  const ms = String(Math.floor((elapsed % 1000) / 10)).padStart(2, '0');
+function completeLevelSuccess() {
+  unlockAchievement('first_clear');
+  if (sys.levelDeaths === 0) unlockAchievement('no_death');
 
-  const rankResult = calculateRank(elapsed, sys.deaths);
+  const lvlTimeMs = Math.round(sys.activeLevelTime * 1000);
+  const evalResult = evaluatePerformance(sys.activeLevelTime, sys.levelDeaths);
+  if (evalResult.rank === 'S+') unlockAchievement('speed_demon');
 
-  document.getElementById('rank-box').innerHTML = `<div class="rank-badge">${rankResult.rank}</div>`;
-  document.getElementById('m-title').innerText = rankResult.title;
-  document.getElementById('m-desc').innerText = `الوقت الكلي: ${m}:${s}.${ms}\nعدد الوفيات: ${sys.deaths}\nالتقييم التنافسي: رتبة ${rankResult.rank}`;
-  document.getElementById('m-action').innerText = "إعادة التحدي للرتبة S+";
-  document.getElementById('menu-overlay').classList.remove('hidden');
-}
-
-function launch() {
-  bootAudio();
-  if (document.documentElement.requestFullscreen) {
-    document.documentElement.requestFullscreen().catch(()=>{});
+  // تحديث السجل الشخصي المستقل لهذه المرحلة
+  const prevBest = SAVE_STATE.bestTimes[sys.level];
+  if (!prevBest || lvlTimeMs < prevBest) {
+    SAVE_STATE.bestTimes[sys.level] = lvlTimeMs;
+    SAVE_STATE.bestRanks[sys.level] = evalResult.rank;
+    SAVE_STATE.bestSplits[sys.level] = [...sys.levelSplits];
+    // حفظ مسار الشبح فقط لأنه مسار فوز ناجح
+    SAVE_STATE.ghostTrails[sys.level] = [...currentGhostRecord];
+    StorageManager.save(SAVE_STATE);
   }
-  document.getElementById('menu-overlay').classList.add('hidden');
-  document.getElementById('rank-box').innerHTML = '';
-  sys.deaths = 0;
-  startLevel(0);
-  sys.timeStart = performance.now();
-  sys.running = true;
+
+  // الانتقال للمرحلة التالية أو إنهاء الحملة
+  if (sys.level + 1 < levels.length) {
+    loadLevel(sys.level + 1);
+  } else {
+    finishCampaign();
+  }
 }
 
-const actionBtn = document.getElementById('m-action');
-actionBtn.addEventListener('click', launch);
-actionBtn.addEventListener('touchend', (e) => {
-  e.preventDefault();
-  launch();
+function finishCampaign() {
+  sys.running = false;
+  const m = String(Math.floor(sys.activeLevelTime / 60)).padStart(2, '0');
+  const s = String(Math.floor(sys.activeLevelTime % 60)).padStart(2, '0');
+  const ms = String(Math.floor((sys.activeLevelTime * 100) % 100)).padStart(2, '0');
+
+  const finalEval = evaluatePerformance(sys.activeLevelTime, sys.deaths);
+
+  document.getElementById('rank-slot').innerHTML = `<div class="rank-text">${finalEval.rank}</div>`;
+  document.getElementById('menu-title').innerText = finalEval.title;
+  document.getElementById('menu-desc').innerText =
+    `اكتملت الحملة التنافسية بالكامل!\n` +
+    `الوقت الصافي للمرحلة الأخيرة: ${m}:${s}.${ms}\n` +
+    `مجموع الوفيات: ${sys.deaths}\nالتقييم: رتبة ${finalEval.rank}`;
+  document.getElementById('btn-start').innerText = 'بدء تحدٍ جديد';
+  document.getElementById('modal-menu').classList.remove('hidden');
+}
+
+function startGame() {
+  audio.init();
+  if (document.documentElement.requestFullscreen) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  }
+  document.getElementById('modal-menu').classList.add('hidden');
+  document.getElementById('rank-slot').innerHTML = '';
+  sys.deaths = 0;
+  loadLevel(0);
+  sys.running = true;
+  sys.paused = false;
+}
+
+function togglePause() {
+  if (!sys.running) return;
+  sys.paused = !sys.paused;
+  const modal = document.getElementById('modal-pause');
+  if (sys.paused) {
+    modal.classList.remove('hidden');
+  } else {
+    modal.classList.add('hidden');
+    lastTime = performance.now();
+  }
+}
+
+// أزرار التحكم بالنوافذ
+document.getElementById('btn-start').addEventListener('click', startGame);
+document.getElementById('btn-pause-open').addEventListener('click', togglePause);
+document.getElementById('btn-resume').addEventListener('click', togglePause);
+document.getElementById('btn-restart-now').addEventListener('click', () => {
+  togglePause();
+  loadLevel(sys.level);
+});
+document.getElementById('btn-exit-main').addEventListener('click', () => {
+  sys.running = false;
+  sys.paused = false;
+  document.getElementById('modal-pause').classList.add('hidden');
+  document.getElementById('modal-menu').classList.remove('hidden');
 });
 
+// إعدادات النظام وتفضيلات اللمس
+const modalSettings = document.getElementById('modal-settings');
+document.getElementById('btn-open-settings').addEventListener('click', () => {
+  document.getElementById('cfg-shake').checked = CONFIG.shake;
+  document.getElementById('cfg-ghost').checked = CONFIG.ghost;
+  document.getElementById('cfg-audio').checked = CONFIG.audio;
+  document.getElementById('cfg-haptic').checked = CONFIG.haptic;
+  document.getElementById('cfg-touch-alpha').value = Math.round(CONFIG.touchAlpha * 100);
+  document.getElementById('cfg-touch-size').value = CONFIG.touchSize;
+  modalSettings.classList.remove('hidden');
+});
+
+document.getElementById('btn-save-cfg').addEventListener('click', () => {
+  CONFIG.shake = document.getElementById('cfg-shake').checked;
+  CONFIG.ghost = document.getElementById('cfg-ghost').checked;
+  CONFIG.audio = document.getElementById('cfg-audio').checked;
+  CONFIG.haptic = document.getElementById('cfg-haptic').checked;
+  CONFIG.touchAlpha = parseInt(document.getElementById('cfg-touch-alpha').value) / 100;
+  CONFIG.touchSize = parseInt(document.getElementById('cfg-touch-size').value);
+
+  // تطبيق أحجام وشفافية الأزرار
+  document.querySelectorAll('.touch-btn').forEach(btn => {
+    btn.style.width = CONFIG.touchSize + 'px';
+    btn.style.height = CONFIG.touchSize + 'px';
+    btn.style.opacity = CONFIG.touchAlpha;
+  });
+
+  if (!CONFIG.audio) audio.stopMusic();
+  else if (sys.running && !sys.paused) audio.startMusic();
+
+  StorageManager.save(SAVE_STATE);
+  modalSettings.classList.add('hidden');
+});
+
+// نافذة الإنجازات
+const modalAchieve = document.getElementById('modal-achievements');
+document.getElementById('btn-open-achievements').addEventListener('click', () => {
+  const container = document.getElementById('achieve-container');
+  container.innerHTML = '';
+  ACHIEVEMENTS_DEF.forEach(a => {
+    const unlocked = !!SAVE_STATE.achievements[a.id];
+    const item = document.createElement('div');
+    item.className = 'achieve-item' + (unlocked ? ' unlocked' : '');
+    item.innerHTML = `<div><b>${a.title}</b><br><span style="color:#94a3b8">${a.desc}</span></div><div>${unlocked ? '✅ منجز' : '🔒 مغلق'}</div>`;
+    container.appendChild(item);
+  });
+  modalAchieve.classList.remove('hidden');
+});
+
+document.getElementById('btn-close-achieve').addEventListener('click', () => {
+  modalAchieve.classList.add('hidden');
+});
+
+// بدء حلقة المحرك
 requestAnimationFrame(engineLoop);
 </script>
 </body>
