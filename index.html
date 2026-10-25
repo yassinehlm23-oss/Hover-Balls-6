@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Shadow of the Glitch: Cyber Legacy — 10-Stage Campaign Edition</title>
+  <title>Shadow of the Glitch: Cyber Legacy — Expanded Edition</title>
   <style>
     :root {
       --primary: #00f0ff;
@@ -12,8 +12,9 @@
       --danger: #ef4444;
       --success: #10b981;
       --purple: #a855f7;
+      --shield-blue: #38bdf8;
       --bg: #020307;
-      --surface: rgba(8, 14, 28, 0.85);
+      --surface: rgba(8, 14, 28, 0.88);
       --border: rgba(255, 255, 255, 0.16);
       --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
     }
@@ -110,9 +111,13 @@
     .btn-hud {
       pointer-events: auto;
       cursor: pointer;
+      transition: transform 0.1s ease;
+    }
+    .btn-hud:active {
+      transform: scale(0.92);
     }
 
-    /* أشرطة الطاقة والصحة التنافسية */
+    /* أشرطة الطاقة والصحة */
     .bars-wrap {
       display: flex;
       flex-direction: column;
@@ -126,6 +131,7 @@
       border-radius: 4px;
       overflow: hidden;
       border: 1px solid rgba(255, 255, 255, 0.15);
+      position: relative;
     }
     #hp-bar-fill {
       width: 100%;
@@ -190,32 +196,60 @@
     .phase-marker.p60 { left: 60%; }
     .phase-marker.p25 { left: 25%; }
 
+    /* شريط التحذير الدرامي للزعماء */
+    #boss-warning-banner {
+      position: fixed;
+      top: 35%;
+      left: 0;
+      right: 0;
+      background: linear-gradient(90deg, transparent, rgba(239, 68, 68, 0.85), rgba(255, 0, 127, 0.9), rgba(239, 68, 68, 0.85), transparent);
+      padding: 16px 0;
+      text-align: center;
+      color: #fff;
+      font-size: clamp(20px, 4vw, 36px);
+      font-weight: 900;
+      letter-spacing: 4px;
+      text-shadow: 0 0 25px #ff0055, 0 0 45px #ef4444;
+      z-index: 150;
+      display: none;
+      animation: pulseWarning 0.6s infinite alternate;
+      border-top: 2px solid rgba(255, 255, 255, 0.6);
+      border-bottom: 2px solid rgba(255, 255, 255, 0.6);
+      pointer-events: none;
+    }
+    @keyframes pulseWarning {
+      from { transform: scale(0.98); opacity: 0.85; }
+      to { transform: scale(1.02); opacity: 1; }
+    }
+
     /* عناصر التحكم اللمسية */
     #touch-bar {
       position: fixed;
-      bottom: env(safe-area-inset-bottom, 16px);
+      bottom: env(safe-area-inset-bottom, 14px);
       left: 0;
       right: 0;
       display: flex;
       justify-content: space-between;
-      padding: 0 16px;
+      padding: 0 12px;
       pointer-events: none;
       z-index: 110;
     }
     .touch-cluster {
       display: flex;
-      gap: 10px;
+      gap: 8px;
       align-items: flex-end;
       pointer-events: auto;
+      flex-wrap: wrap;
+      max-width: 58vw;
     }
     .touch-btn {
-      width: 60px;
-      height: 60px;
+      width: 52px;
+      height: 52px;
       border-radius: 50%;
       background: rgba(15, 20, 36, 0.72);
       border: 1.5px solid rgba(255, 255, 255, 0.25);
       color: #fff;
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 800;
       display: flex;
       justify-content: center;
@@ -230,32 +264,15 @@
       transform: scale(0.9);
       background: rgba(255, 255, 255, 0.35);
     }
-    .btn-shift-ui {
-      border-color: var(--secondary);
-      color: var(--secondary);
-      font-size: 11px;
-    }
-    .btn-dash-ui {
-      border-color: var(--amber);
-      color: var(--amber);
-      font-size: 11px;
-    }
-    .btn-jump-ui {
-      border-color: var(--primary);
-      color: var(--primary);
-    }
-    .btn-atk-ui {
-      border-color: #f43f5e;
-      color: #f43f5e;
-      font-size: 11px;
-    }
-    .btn-emp-ui {
-      border-color: var(--purple);
-      color: var(--purple);
-      font-size: 11px;
-    }
+    .btn-shift-ui { border-color: var(--secondary); color: var(--secondary); font-size: 10px; }
+    .btn-dash-ui { border-color: var(--amber); color: var(--amber); font-size: 10px; }
+    .btn-jump-ui { border-color: var(--primary); color: var(--primary); font-size: 18px; }
+    .btn-atk-ui { border-color: #f43f5e; color: #f43f5e; font-size: 10px; }
+    .btn-blast-ui { border-color: #38bdf8; color: #38bdf8; font-size: 10px; }
+    .btn-shield-ui { border-color: #06b6d4; color: #06b6d4; font-size: 9px; }
+    .btn-emp-ui { border-color: var(--purple); color: var(--purple); font-size: 10px; }
 
-    /* القوائم والنوافذ */
+    /* القوائم والنوافذ المنبثقة */
     .modal-panel {
       position: fixed;
       inset: 0;
@@ -272,6 +289,7 @@
       opacity: 1;
       visibility: visible;
       transition: opacity 0.2s ease, visibility 0.2s ease;
+      overflow-y: auto;
     }
     .modal-panel.hidden {
       opacity: 0;
@@ -289,9 +307,9 @@
     .modal-panel p {
       font-size: 14px;
       color: #94a3b8;
-      max-width: 480px;
+      max-width: 500px;
       line-height: 1.7;
-      margin-bottom: 24px;
+      margin-bottom: 22px;
       white-space: pre-line;
     }
     .rank-text {
@@ -306,7 +324,7 @@
       border: 1px solid rgba(168, 85, 247, 0.5);
       border-radius: 12px;
       padding: 10px 20px;
-      margin-bottom: 20px;
+      margin-bottom: 18px;
       color: #e9d5ff;
       font-size: 13px;
       font-weight: 700;
@@ -315,17 +333,17 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
-      width: min(300px, 88vw);
+      width: min(320px, 88vw);
     }
     .action-btn {
-      padding: 13px 32px;
+      padding: 12px 28px;
       font-size: 15px;
       font-weight: 800;
       color: #010204;
       background: linear-gradient(135deg, var(--primary), #0077fe);
       border: none;
       border-radius: 30px;
-      box-shadow: 0 0 25px rgba(0, 240, 255, 0.6);
+      box-shadow: 0 0 25px rgba(0, 240, 255, 0.5);
       cursor: pointer;
       transition: transform 0.1s ease, filter 0.1s ease;
     }
@@ -337,6 +355,60 @@
       color: #fff;
       border: 1px solid var(--border);
       box-shadow: none;
+    }
+
+    /* شبكة اختيار المراحل (Stage Select Grid) */
+    .stages-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
+      gap: 10px;
+      width: min(580px, 92vw);
+      max-height: 52vh;
+      overflow-y: auto;
+      padding: 8px;
+      margin-bottom: 20px;
+    }
+    .stage-item {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 8px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      align-items: center;
+      transition: all 0.15s ease;
+    }
+    .stage-item:not(.locked):hover {
+      background: rgba(0, 240, 255, 0.15);
+      border-color: var(--primary);
+      transform: translateY(-2px);
+    }
+    .stage-item.locked {
+      opacity: 0.35;
+      cursor: not-allowed;
+      border-style: dashed;
+    }
+    .stage-item.boss-stage {
+      border-color: rgba(255, 0, 127, 0.6);
+      background: rgba(255, 0, 127, 0.06);
+    }
+    .stage-num {
+      font-size: 13px;
+      font-weight: 800;
+      color: #fff;
+    }
+    .stage-name {
+      font-size: 11px;
+      color: #94a3b8;
+      text-align: center;
+      line-height: 1.3;
+    }
+    .stage-rank {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--amber);
     }
 
     /* الإعدادات */
@@ -374,6 +446,9 @@
 <body>
 
 <canvas id="game-canvas"></canvas>
+
+<!-- شريط التحذير الدرامي للزعماء -->
+<div id="boss-warning-banner">⚠️ WARNING: BOSS DETECTED ⚠️</div>
 
 <!-- واجهة HUD -->
 <div id="hud">
@@ -413,6 +488,8 @@
   </div>
   <div class="touch-cluster">
     <div class="touch-btn btn-atk-ui" id="t-atk">ATK</div>
+    <div class="touch-btn btn-blast-ui" id="t-blast">BLST</div>
+    <div class="touch-btn btn-shield-ui" id="t-shield">SHLD</div>
     <div class="touch-btn btn-emp-ui" id="t-emp">EMP</div>
     <div class="touch-btn btn-shift-ui" id="t-shift">SHIFT</div>
     <div class="touch-btn btn-dash-ui" id="t-dash">DASH</div>
@@ -426,11 +503,34 @@
   <h1 id="menu-title">SHADOW OF THE GLITCH</h1>
   <p id="menu-desc">
     الحملة السيبرانية الكبرى: 10 مراحل ملحمية مع مواجهتي زعماء!
-    تحكّم في تبديل الأبعاد، استخدم السيف والنبضة، وتفوق في منصات الدقة السريعة.
+    تحكّم في تبديل الأبعاد، استخدم السيف، المقذوف النيوني، درع الطاقة، ونبضة الـ EMP.
   </p>
   <div class="btn-stack">
-    <button class="action-btn" id="btn-start">دخول الحملة (10 مراحل)</button>
+    <button class="action-btn" id="btn-start">دخول الحملة (من البداية)</button>
+    <button class="action-btn secondary-action" id="btn-open-stage-select">اختيار مرحلة محددة</button>
     <button class="action-btn secondary-action" id="btn-open-settings">الإعدادات وتخصيص الأزرار</button>
+  </div>
+</div>
+
+<!-- نافذة اختيار المراحل -->
+<div class="modal-panel hidden" id="modal-stage-select">
+  <h1>خريطة المراحل السيبرانية</h1>
+  <p>اختر أي مرحلة تم فتحها لإعادة خوض التحدي وتحسين توقيتك ورتبتك.</p>
+  <div class="stages-grid" id="stages-container"></div>
+  <div class="btn-stack">
+    <button class="action-btn secondary-action" id="btn-close-stage-select">إغلاق والعودة</button>
+  </div>
+</div>
+
+<!-- شاشة إنجاز المرحلة (Stage Clear) -->
+<div class="modal-panel hidden" id="modal-stage-clear">
+  <div class="rank-text" id="clear-rank-label">S</div>
+  <h1 id="clear-title-label">تم تطهير المرحلة بنجاح!</h1>
+  <p id="clear-stats-desc">زمن الجولة: 00:00.00 | الوفيات: 0</p>
+  <div class="btn-stack">
+    <button class="action-btn" id="btn-next-stage">الانتقال للمرحلة التالية ⏩</button>
+    <button class="action-btn secondary-action" id="btn-replay-stage">إعادة المرحلة 🔄</button>
+    <button class="action-btn secondary-action" id="btn-clear-to-stages">خريطة المراحل 🗺️</button>
   </div>
 </div>
 
@@ -440,6 +540,7 @@
   <p>الزمن التنافسي متوقف حالياً. استعد لاستئناف الجولة.</p>
   <div class="btn-stack">
     <button class="action-btn" id="btn-resume">استئناف اللعب</button>
+    <button class="action-btn secondary-action" id="btn-pause-stages">خريطة المراحل</button>
     <button class="action-btn secondary-action" id="btn-restart-now">إعادة المرحلة الحالية</button>
     <button class="action-btn secondary-action" id="btn-exit-main">العودة للشاشة الرئيسية</button>
   </div>
@@ -481,7 +582,7 @@
 
 <script>
 /**
- * Shadow of the Glitch: Cyber Legacy — 10-Stage Full Campaign Edition
+ * Shadow of the Glitch: Cyber Legacy — 10-Stage Full Campaign Expanded Edition
  */
 
 // ==========================================
@@ -494,10 +595,10 @@ const CONFIG = {
   audio: true,
   haptic: true,
   touchAlpha: 0.72,
-  touchSize: 60
+  touchSize: 52
 };
 
-const STORAGE_KEY = 'SOTG_CAMPAIGN10_SAVE_V8';
+const STORAGE_KEY = 'SOTG_CAMPAIGN10_SAVE_V9_EXP';
 
 class StorageManager {
   static load() {
@@ -506,6 +607,7 @@ class StorageManager {
       if (data) {
         const parsed = JSON.parse(data);
         if (parsed.config) Object.assign(CONFIG, parsed.config);
+        if (!parsed.unlockedLevel) parsed.unlockedLevel = 0;
         return parsed;
       }
     } catch (e) {}
@@ -515,6 +617,7 @@ class StorageManager {
       bestRanks: {},
       ghostTrails: {},
       unlockedPrismScarf: false,
+      unlockedLevel: 0,
       config: CONFIG
     };
   }
@@ -629,6 +732,27 @@ class SoundFX {
         g.gain.setValueAtTime(0.28, t);
         g.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
         osc.start(t); osc.stop(t + 0.12);
+      } else if (name === 'blaster') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(950, t);
+        osc.frequency.exponentialRampToValueAtTime(220, t + 0.15);
+        g.gain.setValueAtTime(0.22, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+        osc.start(t); osc.stop(t + 0.15);
+      } else if (name === 'shield') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(240, t);
+        osc.frequency.exponentialRampToValueAtTime(880, t + 0.25);
+        g.gain.setValueAtTime(0.32, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+        osc.start(t); osc.stop(t + 0.25);
+      } else if (name === 'shield_break') {
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(520, t);
+        osc.frequency.exponentialRampToValueAtTime(90, t + 0.28);
+        g.gain.setValueAtTime(0.35, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+        osc.start(t); osc.stop(t + 0.28);
       } else if (name === 'emp') {
         osc.type = 'sine';
         osc.frequency.setValueAtTime(180, t);
@@ -636,6 +760,13 @@ class SoundFX {
         g.gain.setValueAtTime(0.4, t);
         g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
         osc.start(t); osc.stop(t + 0.35);
+      } else if (name === 'boss_warning') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(130, t);
+        osc.frequency.linearRampToValueAtTime(260, t + 0.4);
+        g.gain.setValueAtTime(0.4, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+        osc.start(t); osc.stop(t + 0.4);
       } else if (name === 'boss_telegraph') {
         osc.type = 'sine';
         osc.frequency.setValueAtTime(220, t);
@@ -752,6 +883,8 @@ const CONSTANTS = {
   maxEnergy: 100,
   energyRegenRate: 18.0,
   empEnergyCost: 40,
+  blasterEnergyCost: 20,
+  shieldEnergyCost: 35,
   attackCooldown: 0.28,
   attackDuration: 0.14,
   attackRangeX: 42,
@@ -812,6 +945,8 @@ const hero = {
   isAttacking: false,
   attackTimer: 0,
   attackCooldownTimer: 0,
+  shieldActive: false,
+  shieldAngle: 0,
   empWave: { active: false, x: 0, y: 0, radius: 0, maxRadius: 130 },
   scarf: Array.from({ length: 8 }, () => ({ x: 0, y: 0 })),
   ghosts: []
@@ -839,11 +974,12 @@ const boss = {
   arenaHazards: []
 };
 
+let heroProjectiles = [];
 let enemyProjectiles = [];
 let currentGhostRecord = [];
 let activeReplayGhost = [];
 
-const MAX_PARTICLES = 280;
+const MAX_PARTICLES = 300;
 const particles = Array.from({ length: MAX_PARTICLES }, () => ({
   active: false,
   x: 0, y: 0,
@@ -876,7 +1012,7 @@ function emitParticles(x, y, color, count = 10, speedMul = 1) {
 }
 
 // ==========================================
-// 5. قوالب المراحل الـ 10 الكاملة (10-Stage Campaign Templates)
+// 5. قوالب المراحل الـ 10 الكاملة
 // ==========================================
 const LEVEL_TEMPLATES = [
   // 1. مدينة الواقع الرقمي: تعليمية متوازنة
@@ -964,7 +1100,7 @@ const LEVEL_TEMPLATES = [
 
   // 3. حلبة حارس الواقع: الزعيم الأول
   {
-    name: 'حلبة حارس الواقع',
+    name: 'حلبة حارس الواقع (زعيم)',
     w: 2400, h: 900,
     spawn: { x: 150, y: 720 },
     exit: { x: 2220, y: 720 },
@@ -1296,6 +1432,8 @@ const input = {
   dashTrigger: false,
   shiftTrigger: false,
   attackTrigger: false,
+  blasterTrigger: false,
+  shieldTrigger: false,
   empTrigger: false
 };
 
@@ -1306,6 +1444,8 @@ const activePointers = {
   dash: new Set(),
   shift: new Set(),
   atk: new Set(),
+  blast: new Set(),
+  shield: new Set(),
   emp: new Set()
 };
 
@@ -1329,6 +1469,8 @@ function setupMultiTouchBtn(id, actionKey, isTrigger = false) {
     if (actionKey === 'dash') input.dashTrigger = true;
     if (actionKey === 'shift') input.shiftTrigger = true;
     if (actionKey === 'atk') input.attackTrigger = true;
+    if (actionKey === 'blast') input.blasterTrigger = true;
+    if (actionKey === 'shield') input.shieldTrigger = true;
     if (actionKey === 'emp') input.empTrigger = true;
   };
 
@@ -1356,6 +1498,8 @@ setupMultiTouchBtn('t-jump', 'jump');
 setupMultiTouchBtn('t-dash', 'dash', true);
 setupMultiTouchBtn('t-shift', 'shift', true);
 setupMultiTouchBtn('t-atk', 'atk', true);
+setupMultiTouchBtn('t-blast', 'blast', true);
+setupMultiTouchBtn('t-shield', 'shield', true);
 setupMultiTouchBtn('t-emp', 'emp', true);
 
 window.addEventListener('keydown', (e) => {
@@ -1371,6 +1515,8 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'KeyJ' || e.code === 'ShiftLeft') input.dashTrigger = true;
   if (e.code === 'KeyK' || e.code === 'KeyE') input.shiftTrigger = true;
   if (e.code === 'KeyF') input.attackTrigger = true;
+  if (e.code === 'KeyX' || e.code === 'KeyC') input.blasterTrigger = true;
+  if (e.code === 'KeyV') input.shieldTrigger = true;
   if (e.code === 'KeyQ') input.empTrigger = true;
   if (e.code === 'Escape' || e.code === 'KeyP') togglePause();
 });
@@ -1388,6 +1534,8 @@ window.addEventListener('blur', () => {
   input.dashTrigger = false;
   input.shiftTrigger = false;
   input.attackTrigger = false;
+  input.blasterTrigger = false;
+  input.shieldTrigger = false;
   input.empTrigger = false;
   Object.keys(activePointers).forEach(k => activePointers[k].clear());
   document.querySelectorAll('.touch-btn').forEach(btn => btn.classList.remove('pressed'));
@@ -1558,6 +1706,34 @@ function triggerAttack() {
   }
 }
 
+function triggerBlaster() {
+  if (hero.energy < CONSTANTS.blasterEnergyCost || sys.isDead) return;
+  hero.energy -= CONSTANTS.blasterEnergyCost;
+  audio.play('blaster');
+  triggerHaptic(25);
+  sys.shake = CONFIG.shake ? 4 : 0;
+
+  heroProjectiles.push({
+    x: hero.facing === 1 ? hero.x + hero.w + 4 : hero.x - 14,
+    y: hero.y + hero.h / 2,
+    vx: hero.facing * 14.5,
+    life: 2.2,
+    w: 12, h: 6
+  });
+
+  emitParticles(hero.x + (hero.facing === 1 ? hero.w : 0), hero.y + hero.h / 2, '#38bdf8', 8);
+}
+
+function triggerShield() {
+  if (hero.shieldActive) return;
+  if (hero.energy < CONSTANTS.shieldEnergyCost || sys.isDead) return;
+  hero.energy -= CONSTANTS.shieldEnergyCost;
+  hero.shieldActive = true;
+  audio.play('shield');
+  triggerHaptic(35);
+  emitParticles(hero.x + hero.w / 2, hero.y + hero.h / 2, '#38bdf8', 18);
+}
+
 function triggerEMP() {
   if (hero.energy < CONSTANTS.empEnergyCost || hero.empWave.active || sys.isDead) return;
   hero.energy -= CONSTANTS.empEnergyCost;
@@ -1667,6 +1843,18 @@ function defeatBoss() {
 
 function hurtHero(amount = 1) {
   if (sys.invulnTimer > 0 || sys.isDead) return;
+
+  // إذا كان الدرع مفعل، يمتص الضربة بالكامل
+  if (hero.shieldActive) {
+    hero.shieldActive = false;
+    audio.play('shield_break');
+    triggerHaptic(50);
+    sys.shake = CONFIG.shake ? 10 : 0;
+    emitParticles(hero.x + hero.w / 2, hero.y + hero.h / 2, '#38bdf8', 25, 2);
+    sys.invulnTimer = 0.6;
+    return;
+  }
+
   hero.hp -= amount;
   sys.invulnTimer = CONSTANTS.invulnDuration;
   audio.play('hurt');
@@ -1677,6 +1865,17 @@ function hurtHero(amount = 1) {
   if (hero.hp <= 0) {
     killHero();
   }
+}
+
+function triggerBossWarning() {
+  const banner = document.getElementById('boss-warning-banner');
+  banner.style.display = 'block';
+  audio.play('boss_warning');
+  sys.shake = CONFIG.shake ? 14 : 0;
+  sys.flash = 0.25;
+  setTimeout(() => {
+    banner.style.display = 'none';
+  }, 2200);
 }
 
 function resetBossState(lvl) {
@@ -1697,6 +1896,7 @@ function resetBossState(lvl) {
     boss.y = lvl.boss.spawnY;
     document.getElementById('boss-hud').style.display = 'flex';
     updateBossHUD();
+    triggerBossWarning();
   } else {
     boss.active = false;
     document.getElementById('boss-hud').style.display = 'none';
@@ -1717,6 +1917,7 @@ function killHero() {
 
   currentGhostRecord = [];
   enemyProjectiles = [];
+  heroProjectiles = [];
 
   const lvl = currentLevelData;
   const spawnPos = sys.currentCheckpoint || lvl.spawn;
@@ -1731,6 +1932,7 @@ function killHero() {
   hero.canDash = true;
   hero.airDashUsed = false;
   hero.isAttacking = false;
+  hero.shieldActive = false;
   hero.empWave.active = false;
 
   if (lvl.chaserSpeed > 0) {
@@ -1752,6 +1954,7 @@ function loadLevel(idx) {
   sys.currentCheckpoint = null;
   currentGhostRecord = [];
   enemyProjectiles = [];
+  heroProjectiles = [];
   activeReplayGhost = SAVE_STATE.ghostTrails[idx] ? [...SAVE_STATE.ghostTrails[idx]] : [];
 
   currentLevelData = cloneLevelData(idx);
@@ -1769,6 +1972,7 @@ function loadLevel(idx) {
   hero.dashCooldown = 0;
   hero.isDashing = false;
   hero.isAttacking = false;
+  hero.shieldActive = false;
   hero.attackTimer = 0;
   hero.attackCooldownTimer = 0;
   hero.empWave.active = false;
@@ -1801,6 +2005,12 @@ function loadLevel(idx) {
   badge.innerText = '✦ الواقع [REALITY]';
   badge.classList.remove('glitch-mode');
   document.getElementById('hud-delta').style.display = 'none';
+
+  // تحديث المرحلة المفتوحة في الحفظ
+  if (idx > (SAVE_STATE.unlockedLevel || 0)) {
+    SAVE_STATE.unlockedLevel = idx;
+    StorageManager.save(SAVE_STATE);
+  }
 }
 
 function restartCurrentLevel() {
@@ -1811,11 +2021,14 @@ function restartCurrentLevel() {
   input.dashTrigger = false;
   input.shiftTrigger = false;
   input.attackTrigger = false;
+  input.blasterTrigger = false;
+  input.shieldTrigger = false;
   input.empTrigger = false;
   loadLevel(sys.level);
   sys.running = true;
   sys.paused = false;
   document.getElementById('modal-pause').classList.add('hidden');
+  document.getElementById('modal-stage-clear').classList.add('hidden');
 }
 
 // ==========================================
@@ -2012,6 +2225,8 @@ function fixedPhysics(dt) {
   if (hero.dashCooldown > 0) hero.dashCooldown -= dt;
   if (hero.attackCooldownTimer > 0) hero.attackCooldownTimer -= dt;
 
+  hero.shieldAngle = (hero.shieldAngle + 3.5 * dt) % (Math.PI * 2);
+
   const targetDimFactor = (sys.dimension === 'REAL') ? 0.0 : 1.0;
   sys.dimFactor += (targetDimFactor - sys.dimFactor) * 0.12;
 
@@ -2060,6 +2275,14 @@ function fixedPhysics(dt) {
     triggerAttack();
     input.attackTrigger = false;
   }
+  if (input.blasterTrigger) {
+    triggerBlaster();
+    input.blasterTrigger = false;
+  }
+  if (input.shieldTrigger) {
+    triggerShield();
+    input.shieldTrigger = false;
+  }
   if (input.empTrigger) {
     triggerEMP();
     input.empTrigger = false;
@@ -2094,6 +2317,40 @@ function fixedPhysics(dt) {
   }
 
   updateBossBehavior(effDt);
+
+  // تحديث قذائف البطل (Hero Projectiles)
+  heroProjectiles = heroProjectiles.filter(proj => {
+    proj.x += proj.vx * 60 * effDt;
+    proj.life -= effDt;
+
+    const solids = getActiveSolids();
+    for (let s of solids) {
+      if (checkAABB({ x: proj.x, y: proj.y - 3, w: proj.w, h: proj.h }, s)) {
+        emitParticles(proj.x, proj.y, '#38bdf8', 10);
+        return false;
+      }
+    }
+
+    if (lvl.enemies) {
+      for (let en of lvl.enemies) {
+        if (!en.alive) continue;
+        if (checkAABB({ x: proj.x, y: proj.y - 3, w: proj.w, h: proj.h }, en)) {
+          en.hp -= 1;
+          audio.play('hit');
+          emitParticles(en.x + en.w / 2, en.y + en.h / 2, '#38bdf8', 18);
+          if (en.hp <= 0) en.alive = false;
+          return false;
+        }
+      }
+    }
+
+    if (boss.active && checkAABB({ x: proj.x, y: proj.y - 3, w: proj.w, h: proj.h }, boss)) {
+      damageBoss(12);
+      return false;
+    }
+
+    return proj.life > 0;
+  });
 
   if (lvl.enemies) {
     for (let i = 0; i < lvl.enemies.length; i++) {
@@ -2516,6 +2773,28 @@ function renderPlayer() {
 
   ctx.restore();
 
+  // رسم درع الطاقة إذا كان مفعلاً
+  if (hero.shieldActive) {
+    ctx.save();
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 2.5;
+    ctx.shadowColor = '#38bdf8';
+    ctx.shadowBlur = 18;
+    ctx.beginPath();
+    ctx.arc(hero.x + hero.w / 2, hero.y + hero.h / 2, 26, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // عقدة مدارية متحركة حول الدرع
+    const orbX = hero.x + hero.w / 2 + Math.cos(hero.shieldAngle) * 26;
+    const orbY = hero.y + hero.h / 2 + Math.sin(hero.shieldAngle) * 26;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(orbX, orbY, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // رسم وشاح البطل
   ctx.save();
   ctx.strokeStyle = SAVE_STATE.unlockedPrismScarf
     ? `hsl(${(performance.now() * 0.1) % 360}, 100%, 65%)`
@@ -2717,7 +2996,7 @@ function render() {
     ctx.restore();
   }
 
-  // رسم نقاط الحفظ (Checkpoints)
+  // رسم نقاط الحفظ
   if (lvl.checkpoints) {
     lvl.checkpoints.forEach(cp => {
       ctx.save();
@@ -2809,6 +3088,19 @@ function render() {
     });
   }
 
+  // رسم قذائف البطل (Blaster)
+  heroProjectiles.forEach(proj => {
+    ctx.save();
+    ctx.fillStyle = '#38bdf8';
+    if (!CONFIG.lowFX) {
+      ctx.shadowColor = '#38bdf8';
+      ctx.shadowBlur = 14;
+    }
+    ctx.fillRect(proj.x, proj.y - 3, proj.w, proj.h);
+    ctx.restore();
+  });
+
+  // رسم قذائف الأعداء
   enemyProjectiles.forEach(proj => {
     ctx.save();
     ctx.fillStyle = '#f43f5e';
@@ -2960,6 +3252,7 @@ function evaluateCampaignPerformance(totalTimeSeconds, totalDeaths) {
 }
 
 function completeLevelSuccess() {
+  sys.running = false;
   const lvlTimeMs = Math.round(sys.activeLevelTime * 1000);
   const evalResult = evaluateStagePerformance(sys.activeLevelTime, sys.levelDeaths);
 
@@ -2969,11 +3262,24 @@ function completeLevelSuccess() {
     SAVE_STATE.bestRanks[sys.level] = evalResult.rank;
     SAVE_STATE.bestSplits[sys.level] = [...sys.levelSplits];
     SAVE_STATE.ghostTrails[sys.level] = [...currentGhostRecord];
-    StorageManager.save(SAVE_STATE);
   }
 
+  // فتح المرحلة التالية
+  if (sys.level + 1 > (SAVE_STATE.unlockedLevel || 0) && sys.level + 1 < LEVEL_TEMPLATES.length) {
+    SAVE_STATE.unlockedLevel = sys.level + 1;
+  }
+  StorageManager.save(SAVE_STATE);
+
+  const m = String(Math.floor(sys.activeLevelTime / 60)).padStart(2, '0');
+  const s = String(Math.floor(sys.activeLevelTime % 60)).padStart(2, '0');
+  const ms = String(Math.floor((sys.activeLevelTime * 100) % 100)).padStart(2, '0');
+
   if (sys.level + 1 < LEVEL_TEMPLATES.length) {
-    loadLevel(sys.level + 1);
+    document.getElementById('clear-rank-label').innerText = evalResult.rank;
+    document.getElementById('clear-title-label').innerText = `تم تطهير: ${LEVEL_TEMPLATES[sys.level].name}`;
+    document.getElementById('clear-stats-desc').innerText =
+      `الوقت المستغرق: ${m}:${s}.${ms}\nعدد مرات السقوط: ${sys.levelDeaths}\n${evalResult.title}`;
+    document.getElementById('modal-stage-clear').classList.remove('hidden');
   } else {
     finishCampaign();
   }
@@ -3017,6 +3323,48 @@ function startNewCampaign() {
   sys.paused = false;
 }
 
+function populateStageSelect() {
+  const container = document.getElementById('stages-container');
+  container.innerHTML = '';
+  const maxUnlocked = SAVE_STATE.unlockedLevel || 0;
+
+  LEVEL_TEMPLATES.forEach((tmpl, idx) => {
+    const isLocked = idx > maxUnlocked;
+    const isBoss = (idx === 2 || idx === 9);
+    const bestRank = SAVE_STATE.bestRanks[idx] || '-';
+    let bestTimeStr = '--:--';
+    if (SAVE_STATE.bestTimes[idx]) {
+      const sec = SAVE_STATE.bestTimes[idx] / 1000;
+      const m = String(Math.floor(sec / 60)).padStart(2, '0');
+      const s = String(Math.floor(sec % 60)).padStart(2, '0');
+      bestTimeStr = `${m}:${s}`;
+    }
+
+    const card = document.createElement('div');
+    card.className = `stage-item ${isLocked ? 'locked' : ''} ${isBoss ? 'boss-stage' : ''}`;
+    card.innerHTML = `
+      <div class="stage-num">${isBoss ? '👑 ' : ''}مرحلة ${idx + 1}</div>
+      <div class="stage-name">${tmpl.name}</div>
+      <div class="stage-rank">${isLocked ? '🔒 مغلقة' : `رتبة: ${bestRank} (${bestTimeStr})`}</div>
+    `;
+
+    if (!isLocked) {
+      card.addEventListener('click', () => {
+        audio.init();
+        document.getElementById('modal-stage-select').classList.add('hidden');
+        document.getElementById('modal-menu').classList.add('hidden');
+        document.getElementById('modal-pause').classList.add('hidden');
+        document.getElementById('modal-stage-clear').classList.add('hidden');
+        loadLevel(idx);
+        sys.running = true;
+        sys.paused = false;
+      });
+    }
+
+    container.appendChild(card);
+  });
+}
+
 function togglePause() {
   if (!sys.running) return;
   sys.paused = !sys.paused;
@@ -3029,10 +3377,22 @@ function togglePause() {
   }
 }
 
+// أزرار القائمة والتحكم
 document.getElementById('btn-start').addEventListener('click', startNewCampaign);
+document.getElementById('btn-open-stage-select').addEventListener('click', () => {
+  populateStageSelect();
+  document.getElementById('modal-stage-select').classList.remove('hidden');
+});
+document.getElementById('btn-close-stage-select').addEventListener('click', () => {
+  document.getElementById('modal-stage-select').classList.add('hidden');
+});
 document.getElementById('btn-pause-open').addEventListener('click', togglePause);
 document.getElementById('btn-resume').addEventListener('click', togglePause);
 document.getElementById('btn-restart-now').addEventListener('click', restartCurrentLevel);
+document.getElementById('btn-pause-stages').addEventListener('click', () => {
+  populateStageSelect();
+  document.getElementById('modal-stage-select').classList.remove('hidden');
+});
 document.getElementById('btn-exit-main').addEventListener('click', () => {
   sys.running = false;
   sys.paused = false;
@@ -3041,6 +3401,24 @@ document.getElementById('btn-exit-main').addEventListener('click', () => {
   document.getElementById('modal-menu').classList.remove('hidden');
 });
 
+// أزرار شاشة إنجاز المرحلة
+document.getElementById('btn-next-stage').addEventListener('click', () => {
+  document.getElementById('modal-stage-clear').classList.add('hidden');
+  loadLevel(sys.level + 1);
+  sys.running = true;
+  sys.paused = false;
+});
+document.getElementById('btn-replay-stage').addEventListener('click', () => {
+  document.getElementById('modal-stage-clear').classList.add('hidden');
+  restartCurrentLevel();
+});
+document.getElementById('btn-clear-to-stages').addEventListener('click', () => {
+  document.getElementById('modal-stage-clear').classList.add('hidden');
+  populateStageSelect();
+  document.getElementById('modal-stage-select').classList.remove('hidden');
+});
+
+// نافذة الإعدادات
 const modalSettings = document.getElementById('modal-settings');
 document.getElementById('btn-open-settings').addEventListener('click', () => {
   document.getElementById('cfg-lowfx').checked = CONFIG.lowFX;
