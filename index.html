@@ -1,3456 +1,1404 @@
+```html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Shadow of the Glitch: Cyber Legacy — Expanded Edition</title>
-  <style>
-    :root {
-      --primary: #00f0ff;
-      --secondary: #ff007f;
-      --amber: #f59e0b;
-      --danger: #ef4444;
-      --success: #10b981;
-      --purple: #a855f7;
-      --shield-blue: #38bdf8;
-      --bg: #020307;
-      --surface: rgba(8, 14, 28, 0.88);
-      --border: rgba(255, 255, 255, 0.16);
-      --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
-    }
-    * {
-      box-sizing: border-box;
-      user-select: none;
-      -webkit-user-select: none;
-      margin: 0;
-      padding: 0;
-      -webkit-touch-callout: none;
-      -webkit-tap-highlight-color: transparent;
-    }
-    html, body {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: var(--bg);
-      font-family: var(--font-main);
-      touch-action: none;
-      overscroll-behavior: none;
-    }
-    #game-canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      display: block;
-      z-index: 1;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>محاكي التاجر - إمبراطورية التجارة</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Cairo -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 
-    /* واجهة المعلومات العلوية HUD */
-    #hud {
-      position: fixed;
-      top: env(safe-area-inset-top, 14px);
-      left: env(safe-area-inset-left, 14px);
-      right: env(safe-area-inset-right, 14px);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      pointer-events: none;
-      z-index: 100;
-      gap: 8px;
-    }
-    .hud-group {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-    .hud-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      padding: 6px 14px;
-      border-radius: 18px;
-      color: #fff;
-      font-size: 13px;
-      font-weight: 700;
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      box-shadow: 0 8px 24px rgba(0,0,0,0.6);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      white-space: nowrap;
-    }
-    #dim-badge {
-      color: var(--primary);
-      border-color: rgba(0, 240, 255, 0.5);
-      transition: all 0.25s ease;
-    }
-    #dim-badge.glitch-mode {
-      color: var(--secondary);
-      border-color: rgba(255, 0, 127, 0.5);
-    }
-    #hud-delta {
-      font-size: 11px;
-      padding: 4px 8px;
-      border-radius: 12px;
-      display: none;
-      font-weight: 800;
-    }
-    #hud-delta.ahead {
-      color: var(--success);
-      border: 1px solid rgba(16, 185, 129, 0.4);
-      background: rgba(16, 185, 129, 0.1);
-      display: inline-block;
-    }
-    #hud-delta.behind {
-      color: var(--danger);
-      border: 1px solid rgba(239, 68, 68, 0.4);
-      background: rgba(239, 68, 68, 0.1);
-      display: inline-block;
-    }
-    .btn-hud {
-      pointer-events: auto;
-      cursor: pointer;
-      transition: transform 0.1s ease;
-    }
-    .btn-hud:active {
-      transform: scale(0.92);
-    }
-
-    /* أشرطة الطاقة والصحة */
-    .bars-wrap {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      width: 130px;
-    }
-    .bar-shell {
-      width: 100%;
-      height: 7px;
-      background: rgba(255, 255, 255, 0.12);
-      border-radius: 4px;
-      overflow: hidden;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      position: relative;
-    }
-    #hp-bar-fill {
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, #ef4444, #f43f5e);
-      transition: width 0.15s ease-out;
-    }
-    #energy-bar-fill {
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, #00f0ff, #3b82f6);
-      transition: width 0.08s linear;
-    }
-
-    /* شريط صحة الزعيم */
-    #boss-hud {
-      position: fixed;
-      top: calc(env(safe-area-inset-top, 14px) + 54px);
-      left: 50%;
-      transform: translateX(-50%);
-      width: min(88vw, 520px);
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      z-index: 100;
-    }
-    .boss-title-row {
-      display: flex;
-      justify-content: space-between;
-      width: 100%;
-      color: #fff;
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 1px;
-      text-shadow: 0 0 10px rgba(255, 0, 127, 0.8);
-    }
-    .boss-bar-frame {
-      width: 100%;
-      height: 14px;
-      background: rgba(10, 15, 29, 0.88);
-      border: 1.5px solid rgba(255, 0, 127, 0.7);
-      border-radius: 8px;
-      overflow: hidden;
-      position: relative;
-      box-shadow: 0 0 24px rgba(255, 0, 127, 0.4);
-    }
-    #boss-hp-fill {
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, #ff0055, #ff007f);
-      transition: width 0.12s linear;
-    }
-    .phase-marker {
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      width: 2px;
-      background: rgba(255, 255, 255, 0.6);
-      z-index: 2;
-    }
-    .phase-marker.p60 { left: 60%; }
-    .phase-marker.p25 { left: 25%; }
-
-    /* شريط التحذير الدرامي للزعماء */
-    #boss-warning-banner {
-      position: fixed;
-      top: 35%;
-      left: 0;
-      right: 0;
-      background: linear-gradient(90deg, transparent, rgba(239, 68, 68, 0.85), rgba(255, 0, 127, 0.9), rgba(239, 68, 68, 0.85), transparent);
-      padding: 16px 0;
-      text-align: center;
-      color: #fff;
-      font-size: clamp(20px, 4vw, 36px);
-      font-weight: 900;
-      letter-spacing: 4px;
-      text-shadow: 0 0 25px #ff0055, 0 0 45px #ef4444;
-      z-index: 150;
-      display: none;
-      animation: pulseWarning 0.6s infinite alternate;
-      border-top: 2px solid rgba(255, 255, 255, 0.6);
-      border-bottom: 2px solid rgba(255, 255, 255, 0.6);
-      pointer-events: none;
-    }
-    @keyframes pulseWarning {
-      from { transform: scale(0.98); opacity: 0.85; }
-      to { transform: scale(1.02); opacity: 1; }
-    }
-
-    /* عناصر التحكم اللمسية */
-    #touch-bar {
-      position: fixed;
-      bottom: env(safe-area-inset-bottom, 14px);
-      left: 0;
-      right: 0;
-      display: flex;
-      justify-content: space-between;
-      padding: 0 12px;
-      pointer-events: none;
-      z-index: 110;
-    }
-    .touch-cluster {
-      display: flex;
-      gap: 8px;
-      align-items: flex-end;
-      pointer-events: auto;
-      flex-wrap: wrap;
-      max-width: 58vw;
-    }
-    .touch-btn {
-      width: 52px;
-      height: 52px;
-      border-radius: 50%;
-      background: rgba(15, 20, 36, 0.72);
-      border: 1.5px solid rgba(255, 255, 255, 0.25);
-      color: #fff;
-      font-size: 16px;
-      font-weight: 800;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
-      touch-action: none;
-      transition: transform 0.06s ease, background 0.06s ease;
-    }
-    .touch-btn.pressed {
-      transform: scale(0.9);
-      background: rgba(255, 255, 255, 0.35);
-    }
-    .btn-shift-ui { border-color: var(--secondary); color: var(--secondary); font-size: 10px; }
-    .btn-dash-ui { border-color: var(--amber); color: var(--amber); font-size: 10px; }
-    .btn-jump-ui { border-color: var(--primary); color: var(--primary); font-size: 18px; }
-    .btn-atk-ui { border-color: #f43f5e; color: #f43f5e; font-size: 10px; }
-    .btn-blast-ui { border-color: #38bdf8; color: #38bdf8; font-size: 10px; }
-    .btn-shield-ui { border-color: #06b6d4; color: #06b6d4; font-size: 9px; }
-    .btn-emp-ui { border-color: var(--purple); color: var(--purple); font-size: 10px; }
-
-    /* القوائم والنوافذ المنبثقة */
-    .modal-panel {
-      position: fixed;
-      inset: 0;
-      background: radial-gradient(circle at center, rgba(10, 16, 32, 0.96) 0%, rgba(2, 3, 6, 0.99) 100%);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      z-index: 200;
-      padding: 24px;
-      text-align: center;
-      opacity: 1;
-      visibility: visible;
-      transition: opacity 0.2s ease, visibility 0.2s ease;
-      overflow-y: auto;
-    }
-    .modal-panel.hidden {
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-    }
-    .modal-panel h1 {
-      font-size: clamp(24px, 4.5vw, 38px);
-      color: var(--primary);
-      text-shadow: 0 0 30px rgba(0, 240, 255, 0.8);
-      letter-spacing: 1.5px;
-      margin-bottom: 10px;
-      font-weight: 900;
-    }
-    .modal-panel p {
-      font-size: 14px;
-      color: #94a3b8;
-      max-width: 500px;
-      line-height: 1.7;
-      margin-bottom: 22px;
-      white-space: pre-line;
-    }
-    .rank-text {
-      font-size: clamp(48px, 9vw, 70px);
-      font-weight: 900;
-      color: var(--amber);
-      text-shadow: 0 0 30px rgba(245, 158, 11, 0.8);
-      margin-bottom: 6px;
-    }
-    .reward-box {
-      background: rgba(168, 85, 247, 0.12);
-      border: 1px solid rgba(168, 85, 247, 0.5);
-      border-radius: 12px;
-      padding: 10px 20px;
-      margin-bottom: 18px;
-      color: #e9d5ff;
-      font-size: 13px;
-      font-weight: 700;
-    }
-    .btn-stack {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      width: min(320px, 88vw);
-    }
-    .action-btn {
-      padding: 12px 28px;
-      font-size: 15px;
-      font-weight: 800;
-      color: #010204;
-      background: linear-gradient(135deg, var(--primary), #0077fe);
-      border: none;
-      border-radius: 30px;
-      box-shadow: 0 0 25px rgba(0, 240, 255, 0.5);
-      cursor: pointer;
-      transition: transform 0.1s ease, filter 0.1s ease;
-    }
-    .action-btn:active {
-      transform: scale(0.96);
-    }
-    .secondary-action {
-      background: rgba(255, 255, 255, 0.08);
-      color: #fff;
-      border: 1px solid var(--border);
-      box-shadow: none;
-    }
-
-    /* شبكة اختيار المراحل (Stage Select Grid) */
-    .stages-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
-      gap: 10px;
-      width: min(580px, 92vw);
-      max-height: 52vh;
-      overflow-y: auto;
-      padding: 8px;
-      margin-bottom: 20px;
-    }
-    .stage-item {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 10px 8px;
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      align-items: center;
-      transition: all 0.15s ease;
-    }
-    .stage-item:not(.locked):hover {
-      background: rgba(0, 240, 255, 0.15);
-      border-color: var(--primary);
-      transform: translateY(-2px);
-    }
-    .stage-item.locked {
-      opacity: 0.35;
-      cursor: not-allowed;
-      border-style: dashed;
-    }
-    .stage-item.boss-stage {
-      border-color: rgba(255, 0, 127, 0.6);
-      background: rgba(255, 0, 127, 0.06);
-    }
-    .stage-num {
-      font-size: 13px;
-      font-weight: 800;
-      color: #fff;
-    }
-    .stage-name {
-      font-size: 11px;
-      color: #94a3b8;
-      text-align: center;
-      line-height: 1.3;
-    }
-    .stage-rank {
-      font-size: 11px;
-      font-weight: 800;
-      color: var(--amber);
-    }
-
-    /* الإعدادات */
-    .cfg-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      width: min(460px, 92vw);
-      margin-bottom: 22px;
-      text-align: right;
-    }
-    .cfg-card {
-      background: rgba(255, 255, 255, 0.04);
-      padding: 10px 12px;
-      border-radius: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      color: #e2e8f0;
-      font-size: 12.5px;
-      font-weight: 600;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .cfg-card input[type="checkbox"] {
-      width: 17px;
-      height: 17px;
-      accent-color: var(--primary);
-    }
-    .cfg-card input[type="range"] {
-      width: 80px;
-      accent-color: var(--primary);
-    }
-  </style>
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        .glow-emerald {
+            box-shadow: 0 0 15px -3px rgba(16, 185, 129, 0.25);
+        }
+        .glow-amber {
+            box-shadow: 0 0 15px -3px rgba(245, 158, 11, 0.25);
+        }
+        .transition-all-custom {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+    </style>
 </head>
-<body>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-emerald-500 selection:text-white">
 
-<canvas id="game-canvas"></canvas>
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed top-5 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 w-11/12 max-w-md pointer-events-none"></div>
 
-<!-- شريط التحذير الدرامي للزعماء -->
-<div id="boss-warning-banner">⚠️ WARNING: BOSS DETECTED ⚠️</div>
+    <!-- Header & Status Bar -->
+    <header class="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 sticky top-0 z-30 px-3 sm:px-6 py-3 shadow-lg">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
+            
+            <!-- Logo & Rank -->
+            <div class="flex items-center justify-between w-full md:w-auto gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-slate-950 text-xl font-black shadow-lg shadow-emerald-500/20">
+                        <i class="fa-solid fa-chart-line"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-black tracking-tight leading-tight flex items-center gap-2">
+                            محاكي التاجر
+                            <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">الإصدار 1.0</span>
+                        </h1>
+                        <p class="text-xs text-slate-400 flex items-center gap-1.5 font-medium">
+                            <span>الرتبة:</span>
+                            <span id="rank-badge" class="text-amber-400 font-bold">بائع متجول</span>
+                        </p>
+                    </div>
+                </div>
 
-<!-- واجهة HUD -->
-<div id="hud">
-  <div class="hud-group">
-    <div class="hud-card" id="hud-level">المرحلة: 1 / 10</div>
-    <div class="hud-card" id="dim-badge">✦ الواقع [REALITY]</div>
-    <div class="bars-wrap">
-      <div class="bar-shell" title="Health"><div id="hp-bar-fill"></div></div>
-      <div class="bar-shell" title="Energy"><div id="energy-bar-fill"></div></div>
+                <!-- Next Day Action (Mobile view) -->
+                <button onclick="advanceDay()" class="md:hidden flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 active:scale-95 text-slate-950 font-bold px-4 py-2 rounded-xl text-sm shadow-md transition-all-custom">
+                    <span>اليوم التالي</span>
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+            </div>
+
+            <!-- Stats Bar -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 w-full md:w-auto text-xs sm:text-sm">
+                <!-- Cash -->
+                <div class="bg-slate-800/80 border border-slate-700/60 rounded-xl p-2.5 px-3 flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 text-base">
+                        <i class="fa-solid fa-coins"></i>
+                    </div>
+                    <div>
+                        <div class="text-[11px] text-slate-400">السيولة النقدية</div>
+                        <div id="stat-cash" class="font-bold text-emerald-400 text-sm sm:text-base tracking-wide">$1,000</div>
+                    </div>
+                </div>
+
+                <!-- Net Worth -->
+                <div class="bg-slate-800/80 border border-slate-700/60 rounded-xl p-2.5 px-3 flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 text-base">
+                        <i class="fa-solid fa-vault"></i>
+                    </div>
+                    <div>
+                        <div class="text-[11px] text-slate-400">صافي الثروة</div>
+                        <div id="stat-networth" class="font-bold text-slate-100 text-sm sm:text-base tracking-wide">$1,000</div>
+                    </div>
+                </div>
+
+                <!-- Warehouse Space -->
+                <div class="bg-slate-800/80 border border-slate-700/60 rounded-xl p-2.5 px-3 flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0 text-base">
+                        <i class="fa-solid fa-warehouse"></i>
+                    </div>
+                    <div class="w-full min-w-0">
+                        <div class="flex justify-between items-center text-[11px] text-slate-400">
+                            <span>المستودع</span>
+                            <span id="stat-space-pct" class="font-bold text-blue-400">0%</span>
+                        </div>
+                        <div id="stat-space" class="font-bold text-slate-200 text-xs truncate">0 / 50 وحدة</div>
+                    </div>
+                </div>
+
+                <!-- Day Counter -->
+                <div class="bg-slate-800/80 border border-slate-700/60 rounded-xl p-2.5 px-3 flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center shrink-0 text-base">
+                        <i class="fa-regular fa-calendar-days"></i>
+                    </div>
+                    <div>
+                        <div class="text-[11px] text-slate-400">اليوم الزمني</div>
+                        <div id="stat-day" class="font-black text-purple-300 text-sm sm:text-base">اليوم 1</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Next Day Action (Desktop) -->
+            <button onclick="advanceDay()" class="hidden md:flex items-center gap-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 active:scale-95 text-slate-950 font-extrabold px-6 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 transition-all-custom cursor-pointer">
+                <span>إنهاء اليوم والتقدم</span>
+                <i class="fa-solid fa-forward"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto p-3 sm:p-6 w-full flex-1 flex flex-col gap-6">
+
+        <!-- News & Advisor Notification Banner -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            
+            <!-- Global Market News -->
+            <div class="lg:col-span-2 bg-gradient-to-r from-slate-900 to-slate-800/90 border border-slate-800 rounded-2xl p-4 flex items-start gap-4 shadow-md relative overflow-hidden">
+                <div class="absolute -right-4 -bottom-4 text-slate-800/30 text-8xl pointer-events-none">
+                    <i class="fa-solid fa-newspaper"></i>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 text-2xl shrink-0">
+                    <i class="fa-solid fa-bullhorn"></i>
+                </div>
+                <div class="flex-1 relative z-10">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="text-xs font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded">عاجل الاقتصاد</span>
+                        <span id="news-time" class="text-xs text-slate-400">اليوم الحالي</span>
+                    </div>
+                    <h3 id="news-headline" class="text-base sm:text-lg font-bold text-slate-100 mb-1">الأسواق تفتتح بتعاملات مستقرة</h3>
+                    <p id="news-desc" class="text-xs sm:text-sm text-slate-300 leading-relaxed">تتحرك الأسعار بنمط طبيعي وسط ترقب المستثمرين لفرص الربح في تجارة المحاصيل والمواد الخام.</p>
+                </div>
+            </div>
+
+            <!-- Financial Analyst Hint -->
+            <div id="analyst-card" class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex items-center gap-4 relative overflow-hidden shadow-md">
+                <div class="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 text-2xl shrink-0">
+                    <i class="fa-solid fa-user-tie"></i>
+                </div>
+                <div class="flex-1">
+                    <div class="text-xs font-bold text-indigo-400 mb-1 flex items-center justify-between">
+                        <span>المستشار المالي</span>
+                        <span id="analyst-status" class="text-[10px] text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">غير متاح</span>
+                    </div>
+                    <p id="analyst-text" class="text-xs text-slate-300 italic leading-relaxed">
+                        قم بتوظيف مستشار مالي من قسم الخدمات للحصول على توقعات وتقارير السوق المسبقة!
+                    </p>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="flex items-center gap-2 border-b border-slate-800 pb-2 overflow-x-auto">
+            <button onclick="switchTab('market')" id="tab-btn-market" class="tab-btn px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 transition-all-custom">
+                <i class="fa-solid fa-store"></i>
+                <span>بورصة السلع</span>
+            </button>
+            <button onclick="switchTab('bank')" id="tab-btn-bank" class="tab-btn px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 bg-slate-900 text-slate-400 hover:text-slate-200 border border-transparent transition-all-custom">
+                <i class="fa-solid fa-building-columns"></i>
+                <span>البنك والمستودع</span>
+            </button>
+            <button onclick="switchTab('history')" id="tab-btn-history" class="tab-btn px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 bg-slate-900 text-slate-400 hover:text-slate-200 border border-transparent transition-all-custom">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                <span>سجل الصفقات</span>
+            </button>
+            <button onclick="switchTab('settings')" id="tab-btn-settings" class="tab-btn px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 bg-slate-900 text-slate-400 hover:text-slate-200 border border-transparent transition-all-custom">
+                <i class="fa-solid fa-gear"></i>
+                <span>الإعدادات</span>
+            </button>
+        </div>
+
+        <!-- TAB 1: Market Commodities -->
+        <section id="tab-market" class="space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-sm text-slate-400">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-arrow-down-wide-short text-emerald-400"></i>
+                    <span>أسعار اليوم الحالي تتغير تلقائياً مع كل دورة زمنية:</span>
+                </div>
+                <div class="text-xs text-slate-400 flex items-center gap-3">
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> فرصة صعود</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span> هبوط الأسعار</span>
+                </div>
+            </div>
+
+            <!-- Commodities Grid -->
+            <div id="commodities-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Dynamically Rendered by JS -->
+            </div>
+        </section>
+
+        <!-- TAB 2: Bank & Warehouse Services -->
+        <section id="tab-bank" class="hidden space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                <!-- Bank Loan Center -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between shadow-md">
+                    <div>
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-xl">
+                                <i class="fa-solid fa-hand-holding-dollar"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-black text-slate-100">القروض المصرفية</h3>
+                                <p class="text-xs text-slate-400">فائدة يومية 5% تضاف لرأس الدين</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800/80 mb-4 space-y-2">
+                            <div class="flex justify-between text-xs text-slate-400">
+                                <span>القرض المستحق الحالي:</span>
+                                <span id="bank-debt-amount" class="text-rose-400 font-bold text-sm">$0</span>
+                            </div>
+                            <div class="flex justify-between text-xs text-slate-400">
+                                <span>الحد الأقصى للاقتراض:</span>
+                                <span id="bank-max-borrow" class="text-slate-300 font-medium">$5,000</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="takeLoan(1000)" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 text-xs font-bold py-2.5 rounded-xl border border-slate-700 transition">
+                                اقتراض $1,000
+                            </button>
+                            <button onclick="takeLoan(5000)" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 text-xs font-bold py-2.5 rounded-xl border border-slate-700 transition">
+                                اقتراض $5,000
+                            </button>
+                        </div>
+                        <button onclick="repayDebt()" class="w-full bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-xs font-bold py-2.5 rounded-xl transition">
+                            سداد الدين بالكامل
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Warehouse Upgrade -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between shadow-md">
+                    <div>
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center text-xl">
+                                <i class="fa-solid fa-boxes-stacked"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-black text-slate-100">توسعة المستودع</h3>
+                                <p class="text-xs text-slate-400">زيادة سعة تخزين السلع لتوسيع تجارتك</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800/80 mb-4 space-y-2">
+                            <div class="flex justify-between text-xs text-slate-400">
+                                <span>السعة الحالية:</span>
+                                <span id="upgrade-current-cap" class="text-blue-400 font-bold text-sm">50 وحدة</span>
+                            </div>
+                            <div class="flex justify-between text-xs text-slate-400">
+                                <span>تكلفة التوسعة القادمة (+25 وحدة):</span>
+                                <span id="upgrade-cost" class="text-emerald-400 font-bold text-sm">$500</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button onclick="upgradeWarehouse()" class="w-full bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-600/20 text-xs sm:text-sm transition-all-custom">
+                        <i class="fa-solid fa-arrow-up-right-dots ml-1"></i> شراء التوسعة الآن
+                    </button>
+                </div>
+
+                <!-- Financial Advisor Hire -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between shadow-md">
+                    <div>
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center text-xl">
+                                <i class="fa-solid fa-chart-pie"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-black text-slate-100">محلل مالي خاص</h3>
+                                <p class="text-xs text-slate-400">يقدم لك تسريبات وتوقعات يومية دقيقة</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800/80 mb-4 space-y-2">
+                            <div class="flex justify-between text-xs text-slate-400">
+                                <span>حالة العقد:</span>
+                                <span id="advisor-contract-status" class="text-slate-400 font-semibold text-xs">غير موظف</span>
+                            </div>
+                            <div class="flex justify-between text-xs text-slate-400">
+                                <span>الراتب اليومي للمستشار:</span>
+                                <span class="text-purple-400 font-bold text-sm">$80 / يوم</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button id="advisor-toggle-btn" onclick="toggleAdvisor()" class="w-full bg-purple-600 hover:bg-purple-500 active:scale-95 text-white font-bold py-3 rounded-xl shadow-lg shadow-purple-600/20 text-xs sm:text-sm transition-all-custom">
+                        توظيف المستشار
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- TAB 3: History & Log -->
+        <section id="tab-history" class="hidden">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-md">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-slate-100 flex items-center gap-2">
+                        <i class="fa-solid fa-receipt text-emerald-400"></i>
+                        <span>سجل المعاملات والصفقات المالية</span>
+                    </h3>
+                    <button onclick="clearHistory()" class="text-xs text-slate-400 hover:text-rose-400 transition">
+                        مسح السجل
+                    </button>
+                </div>
+
+                <div id="transactions-log" class="space-y-2 max-h-[460px] overflow-y-auto pr-1">
+                    <div class="text-center py-10 text-slate-500 text-xs">لا توجد عمليات مسجلة حتى الآن.</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: Settings & Reset -->
+        <section id="tab-settings" class="hidden">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 max-w-xl mx-auto shadow-md space-y-6">
+                <div>
+                    <h3 class="font-bold text-base text-slate-100 mb-1">إعدادات اللعبة وحفظ البيانات</h3>
+                    <p class="text-xs text-slate-400">يتم حفظ تقدمك تلقائياً في المتصفح المحلي ليمكنك المتابعة في أي وقت.</p>
+                </div>
+
+                <div class="space-y-3 pt-2">
+                    <div class="flex items-center justify-between p-3 bg-slate-950 rounded-xl border border-slate-800">
+                        <div class="flex items-center gap-2 text-sm text-slate-200">
+                            <i class="fa-solid fa-volume-high text-emerald-400"></i>
+                            <span>المؤثرات الصوتية</span>
+                        </div>
+                        <button id="sound-toggle-btn" onclick="toggleSound()" class="px-3 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 text-xs font-bold border border-emerald-500/30">
+                            مفعلة
+                        </button>
+                    </div>
+
+                    <div class="p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl">
+                        <h4 class="text-sm font-bold text-rose-400 mb-1">إعادة تعيين التقدم بالكامل</h4>
+                        <p class="text-xs text-slate-400 mb-3">سيؤدي هذا إلى مسح كل أرباحك، السلع، والبدء من اليوم الأول برأس مال 1,000 دولار.</p>
+                        <button onclick="confirmResetGame()" class="bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold px-4 py-2 rounded-lg transition active:scale-95 shadow">
+                            تأكيد إعادة البدء من الصفر
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Trade Modal (Buy / Sell) -->
+    <div id="trade-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-5 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div class="flex items-center gap-3">
+                    <div id="modal-icon" class="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-xl">
+                        📦
+                    </div>
+                    <div>
+                        <h3 id="modal-title" class="font-extrabold text-base text-slate-100">اسم السلعة</h3>
+                        <p id="modal-price" class="text-xs text-emerald-400 font-bold">السعر للوحدة: $0</p>
+                    </div>
+                </div>
+                <button onclick="closeTradeModal()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Ownership Summary -->
+            <div class="grid grid-cols-2 gap-2 text-xs bg-slate-950 p-3 rounded-xl border border-slate-800/80">
+                <div>
+                    <span class="text-slate-400">في المستودع:</span>
+                    <span id="modal-owned" class="font-bold text-slate-200">0 وحدة</span>
+                </div>
+                <div>
+                    <span class="text-slate-400">سعة فارغة:</span>
+                    <span id="modal-available-space" class="font-bold text-blue-400">0 وحدة</span>
+                </div>
+            </div>
+
+            <!-- Trade Type Selector (Buy / Sell) -->
+            <div class="grid grid-cols-2 gap-2 p-1 bg-slate-950 rounded-xl border border-slate-800">
+                <button id="mode-buy-btn" onclick="setTradeMode('buy')" class="py-2 rounded-lg font-bold text-xs bg-emerald-500 text-slate-950 transition">
+                    شراء (استثمار)
+                </button>
+                <button id="mode-sell-btn" onclick="setTradeMode('sell')" class="py-2 rounded-lg font-bold text-xs text-slate-400 hover:text-slate-200 transition">
+                    بيع (جني أرباح)
+                </button>
+            </div>
+
+            <!-- Quantity Controls -->
+            <div class="space-y-2">
+                <label class="text-xs text-slate-400 block">حدد الكمية المطلوبة:</label>
+                <div class="flex items-center gap-2">
+                    <button onclick="adjustQty(-10)" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold active:scale-95 transition">-10</button>
+                    <button onclick="adjustQty(-1)" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold active:scale-95 transition">-1</button>
+                    <input id="modal-qty-input" type="number" min="1" value="1" oninput="onQtyChange()" class="flex-1 bg-slate-950 border border-slate-700 rounded-xl text-center font-bold text-slate-100 py-2 focus:outline-none focus:border-emerald-500">
+                    <button onclick="adjustQty(1)" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold active:scale-95 transition">+1</button>
+                    <button onclick="adjustQty(10)" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold active:scale-95 transition">+10</button>
+                </div>
+
+                <div class="flex justify-between gap-2 pt-1">
+                    <button onclick="setMaxQuantity()" class="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg font-semibold transition">
+                        أقصى كمية ممكنة
+                    </button>
+                    <button onclick="setQuantity(1)" class="py-1.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg font-semibold transition">
+                        1 وحدة
+                    </button>
+                </div>
+            </div>
+
+            <!-- Total Cost / Gain -->
+            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-sm">
+                <span class="text-slate-400" id="modal-total-label">الإجمالي المطلوب دفعه:</span>
+                <span id="modal-total-price" class="font-black text-emerald-400 text-base">$0</span>
+            </div>
+
+            <!-- Action Button -->
+            <button id="modal-action-btn" onclick="executeTrade()" class="w-full bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-black py-3 rounded-xl shadow-lg shadow-emerald-500/20 text-sm transition-all-custom">
+                تأكيد العملية
+            </button>
+        </div>
     </div>
-    <div id="hud-delta">+0.00</div>
-  </div>
-  <div class="hud-group">
-    <div class="hud-card" id="hud-stats">💀 0 | 💎 0/0 | ⏱️ 00:00.00</div>
-    <div class="hud-card btn-hud" id="btn-pause-open">⏸️</div>
-  </div>
-</div>
 
-<!-- شريط صحة الزعيم -->
-<div id="boss-hud">
-  <div class="boss-title-row">
-    <span id="boss-name-label">GUARDIAN OF REALITY</span>
-    <span id="boss-phase-label">المرحلة 1 / 3</span>
-  </div>
-  <div class="boss-bar-frame">
-    <div class="phase-marker p60"></div>
-    <div class="phase-marker p25"></div>
-    <div id="boss-hp-fill"></div>
-  </div>
-</div>
-
-<!-- أدوات اللمس -->
-<div id="touch-bar">
-  <div class="touch-cluster">
-    <div class="touch-btn" id="t-left">◀</div>
-    <div class="touch-btn" id="t-right">▶</div>
-  </div>
-  <div class="touch-cluster">
-    <div class="touch-btn btn-atk-ui" id="t-atk">ATK</div>
-    <div class="touch-btn btn-blast-ui" id="t-blast">BLST</div>
-    <div class="touch-btn btn-shield-ui" id="t-shield">SHLD</div>
-    <div class="touch-btn btn-emp-ui" id="t-emp">EMP</div>
-    <div class="touch-btn btn-shift-ui" id="t-shift">SHIFT</div>
-    <div class="touch-btn btn-dash-ui" id="t-dash">DASH</div>
-    <div class="touch-btn btn-jump-ui" id="t-jump">▲</div>
-  </div>
-</div>
-
-<!-- القائمة الرئيسية -->
-<div class="modal-panel" id="modal-menu">
-  <div id="rank-slot"></div>
-  <h1 id="menu-title">SHADOW OF THE GLITCH</h1>
-  <p id="menu-desc">
-    الحملة السيبرانية الكبرى: 10 مراحل ملحمية مع مواجهتي زعماء!
-    تحكّم في تبديل الأبعاد، استخدم السيف، المقذوف النيوني، درع الطاقة، ونبضة الـ EMP.
-  </p>
-  <div class="btn-stack">
-    <button class="action-btn" id="btn-start">دخول الحملة (من البداية)</button>
-    <button class="action-btn secondary-action" id="btn-open-stage-select">اختيار مرحلة محددة</button>
-    <button class="action-btn secondary-action" id="btn-open-settings">الإعدادات وتخصيص الأزرار</button>
-  </div>
-</div>
-
-<!-- نافذة اختيار المراحل -->
-<div class="modal-panel hidden" id="modal-stage-select">
-  <h1>خريطة المراحل السيبرانية</h1>
-  <p>اختر أي مرحلة تم فتحها لإعادة خوض التحدي وتحسين توقيتك ورتبتك.</p>
-  <div class="stages-grid" id="stages-container"></div>
-  <div class="btn-stack">
-    <button class="action-btn secondary-action" id="btn-close-stage-select">إغلاق والعودة</button>
-  </div>
-</div>
-
-<!-- شاشة إنجاز المرحلة (Stage Clear) -->
-<div class="modal-panel hidden" id="modal-stage-clear">
-  <div class="rank-text" id="clear-rank-label">S</div>
-  <h1 id="clear-title-label">تم تطهير المرحلة بنجاح!</h1>
-  <p id="clear-stats-desc">زمن الجولة: 00:00.00 | الوفيات: 0</p>
-  <div class="btn-stack">
-    <button class="action-btn" id="btn-next-stage">الانتقال للمرحلة التالية ⏩</button>
-    <button class="action-btn secondary-action" id="btn-replay-stage">إعادة المرحلة 🔄</button>
-    <button class="action-btn secondary-action" id="btn-clear-to-stages">خريطة المراحل 🗺️</button>
-  </div>
-</div>
-
-<!-- شاشة الإيقاف المؤقت -->
-<div class="modal-panel hidden" id="modal-pause">
-  <h1>اللعبة متوقفة</h1>
-  <p>الزمن التنافسي متوقف حالياً. استعد لاستئناف الجولة.</p>
-  <div class="btn-stack">
-    <button class="action-btn" id="btn-resume">استئناف اللعب</button>
-    <button class="action-btn secondary-action" id="btn-pause-stages">خريطة المراحل</button>
-    <button class="action-btn secondary-action" id="btn-restart-now">إعادة المرحلة الحالية</button>
-    <button class="action-btn secondary-action" id="btn-exit-main">العودة للشاشة الرئيسية</button>
-  </div>
-</div>
-
-<!-- نافذة الإعدادات -->
-<div class="modal-panel hidden" id="modal-settings">
-  <h1>إعدادات النظام والقدرات</h1>
-  <div class="cfg-grid">
-    <div class="cfg-card">
-      <span>نمط الأداء العالي (Low-FX)</span>
-      <input type="checkbox" id="cfg-lowfx">
+    <!-- Confirm Dialog Modal -->
+    <div id="confirm-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-2xl p-5 shadow-2xl space-y-4 text-center">
+            <div class="w-12 h-12 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto text-2xl">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h3 class="font-bold text-slate-100 text-base">هل أنت متأكد من رغبتك في إعادة بدء اللعبة؟</h3>
+            <p class="text-xs text-slate-400 leading-relaxed">سيتم مسح كل الرصيد والمخزون والعودة إلى نقطة الصفر كبائع متجول.</p>
+            <div class="grid grid-cols-2 gap-2 pt-2">
+                <button onclick="closeConfirmModal()" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition">
+                    إلغاء
+                </button>
+                <button onclick="doResetGame()" class="py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs transition shadow">
+                    نعم، أعد البدء
+                </button>
+            </div>
+        </div>
     </div>
-    <div class="cfg-card">
-      <span>اهتزاز الشاشة (Shake)</span>
-      <input type="checkbox" id="cfg-shake" checked>
-    </div>
-    <div class="cfg-card">
-      <span>شبح أفضل زمن (Ghost)</span>
-      <input type="checkbox" id="cfg-ghost" checked>
-    </div>
-    <div class="cfg-card">
-      <span>المؤثرات الصوتية والموسيقى</span>
-      <input type="checkbox" id="cfg-audio" checked>
-    </div>
-    <div class="cfg-card">
-      <span>الاهتزاز اللمسي (Haptic)</span>
-      <input type="checkbox" id="cfg-haptic" checked>
-    </div>
-    <div class="cfg-card">
-      <span>شفافية أزرار اللمس</span>
-      <input type="range" id="cfg-touch-alpha" min="20" max="100" value="72">
-    </div>
-  </div>
-  <div class="btn-stack">
-    <button class="action-btn" id="btn-save-cfg">حفظ وتطبيق</button>
-  </div>
-</div>
 
-<script>
-/**
- * Shadow of the Glitch: Cyber Legacy — 10-Stage Full Campaign Expanded Edition
- */
+    <!-- Game Logic JS -->
+    <script>
+        /* ================= Sound Synthesizer (Web Audio API) ================= */
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+        let soundEnabled = true;
 
-// ==========================================
-// 1. نظام الحفظ وإدارة الإعدادات والمكافآت
-// ==========================================
-const CONFIG = {
-  lowFX: false,
-  shake: true,
-  ghost: true,
-  audio: true,
-  haptic: true,
-  touchAlpha: 0.72,
-  touchSize: 52
-};
-
-const STORAGE_KEY = 'SOTG_CAMPAIGN10_SAVE_V9_EXP';
-
-class StorageManager {
-  static load() {
-    try {
-      const data = localStorage.getItem(STORAGE_KEY);
-      if (data) {
-        const parsed = JSON.parse(data);
-        if (parsed.config) Object.assign(CONFIG, parsed.config);
-        if (!parsed.unlockedLevel) parsed.unlockedLevel = 0;
-        return parsed;
-      }
-    } catch (e) {}
-    return {
-      bestTimes: {},
-      bestSplits: {},
-      bestRanks: {},
-      ghostTrails: {},
-      unlockedPrismScarf: false,
-      unlockedLevel: 0,
-      config: CONFIG
-    };
-  }
-
-  static save(data) {
-    try {
-      data.config = CONFIG;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    } catch (e) {}
-  }
-}
-
-let SAVE_STATE = StorageManager.load();
-
-// ==========================================
-// 2. محرك الصوت الإجرائي
-// ==========================================
-class SoundFX {
-  constructor() {
-    this.ctx = null;
-    this.bgmTimer = null;
-    this.step = 0;
-    this.notes = [110, 110, 130.81, 98, 87.31, 98, 110, 146.83];
-    this.bossNotes = [73.42, 73.42, 87.31, 73.42, 110, 98, 65.41, 82.41];
-  }
-
-  init() {
-    if (!CONFIG.audio) return;
-    if (!this.ctx) {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (AudioCtx) this.ctx = new AudioCtx();
-    }
-    if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume();
-    }
-    this.startMusic();
-  }
-
-  startMusic() {
-    if (this.bgmTimer || !this.ctx || !CONFIG.audio) return;
-    this.bgmTimer = setInterval(() => {
-      if (!sys.running || sys.paused || !CONFIG.audio) return;
-      try {
-        const t = this.ctx.currentTime;
-        const osc = this.ctx.createOscillator();
-        const g = this.ctx.createGain();
-        const isBossStage = (sys.level === 2 || sys.level === 9) && boss.active;
-        const melody = isBossStage ? this.bossNotes : this.notes;
-
-        osc.type = (sys.dimFactor < 0.5) ? 'sine' : 'sawtooth';
-        osc.frequency.setValueAtTime(melody[this.step % melody.length], t);
-        const vol = isBossStage ? 0.045 : ((sys.dimFactor < 0.5) ? 0.03 : 0.018);
-        g.gain.setValueAtTime(vol, t);
-        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
-        osc.connect(g);
-        g.connect(this.ctx.destination);
-        osc.start(t);
-        osc.stop(t + 0.35);
-        this.step++;
-      } catch (e) {}
-    }, 280);
-  }
-
-  stopMusic() {
-    if (this.bgmTimer) {
-      clearInterval(this.bgmTimer);
-      this.bgmTimer = null;
-    }
-  }
-
-  play(name) {
-    if (!this.ctx || !CONFIG.audio) return;
-    try {
-      const t = this.ctx.currentTime;
-      const osc = this.ctx.createOscillator();
-      const g = this.ctx.createGain();
-      osc.connect(g);
-      g.connect(this.ctx.destination);
-
-      if (name === 'jump') {
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(160, t);
-        osc.frequency.exponentialRampToValueAtTime(560, t + 0.11);
-        g.gain.setValueAtTime(0.18, t);
-        g.gain.exponentialRampToValueAtTime(0.001, t + 0.11);
-        osc.start(t); osc.stop(t + 0.11);
-      } else if (name === 'walljump') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(280, t);
-        osc.frequency.exponentialRampToValueAtTime(720, t + 0.13);
-        g.gain.setValueAtTime(0.2, t);
-        g.gain.exponentialRampToValueAtTime(0.001, t + 0.13);
-        osc.start(t); osc.stop(t + 0.13);
-      } else if (name === 'dash') {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(340, t);
-        osc.frequency.exponentialRampToValueAtTime(50, t + 0.16);
-        g.gain.setValueAtTime(0.25, t);
-        g.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
-        osc.start(t); osc.stop(t + 0.16);
-      } else if (name === 'shift') {
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(700, t);
-        osc.frequency.exponentialRampToValueAtTime(140, t + 0.2);
-        g.gain.setValueAtTime(0.18, t);
-        g.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
-        osc.start(t); osc.stop(t + 0.2);
-      } else if (name === 'slash') {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(800, t);
-        osc.frequency.exponentialRampToValueAtTime(120, t + 0.12);
-        g.gain.setValueAtTime(0.28, t);
-        g.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
-        osc.start(t); osc.stop(t + 0.12);
-      } else if (name === 'blaster') {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(950, t);
-        osc.frequency.exponentialRampToValueAtTime(220, t + 0.15);
-        g.gain.setValueAtTime(0.22, t);
-        g.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
-        osc.start(t); osc.stop(t + 0.15);
-      } else if (name === 'shield') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(240, t);
-        osc.frequency.exponentialRampToValueAtTime(880, t + 0.25);
-        g.gain.setValueAtTime(0.32, t);
-        g.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
-        osc.start(t); osc.stop(t + 0.25);
-      } else if (name === 'shield_break') {
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(520, t);
-        osc.frequency.exponentialRampToValueAtTime(90, t + 0.28);
-        g.gain.setValueAtTime(0.35, t);
-        g.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
-        osc.start(t); osc.stop(t + 0.28);
-      } else if (name === 'emp') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(180, t);
-        osc.frequency.exponentialRampToValueAtTime(40, t + 0.35);
-        g.gain.setValueAtTime(0.4, t);
-        g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
-        osc.start(t); osc.stop(t + 0.35);
-      } else if (name === 'boss_warning') {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(130, t);
-        osc.frequency.linearRampToValueAtTime(260, t + 0.4);
-        g.gain.setValueAtTime(0.4, t);
-        g.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
-        osc.start(t); osc.stop(t + 0.4);
-      } else if (name === 'boss_telegraph') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(220, t);
-        osc.frequency.linearRampToValueAtTime(660, t + 0.5);
-        g.gain.setValueAtTime(0.25, t);
-        g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
-        osc.start(t); osc.stop(t + 0.5);
-      } else if (name === 'boss_phase') {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(90, t);
-        osc.frequency.exponentialRampToValueAtTime(400, t + 0.8);
-        g.gain.setValueAtTime(0.5, t);
-        g.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
-        osc.start(t); osc.stop(t + 0.8);
-      } else if (name === 'boss_slam') {
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(180, t);
-        osc.frequency.exponentialRampToValueAtTime(25, t + 0.45);
-        g.gain.setValueAtTime(0.55, t);
-        g.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
-        osc.start(t); osc.stop(t + 0.45);
-      } else if (name === 'turret_shot') {
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(420, t);
-        osc.frequency.exponentialRampToValueAtTime(110, t + 0.14);
-        g.gain.setValueAtTime(0.15, t);
-        g.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
-        osc.start(t); osc.stop(t + 0.14);
-      } else if (name === 'hurt') {
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(260, t);
-        osc.frequency.exponentialRampToValueAtTime(70, t + 0.2);
-        g.gain.setValueAtTime(0.35, t);
-        g.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
-        osc.start(t); osc.stop(t + 0.2);
-      } else if (name === 'shard') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(659.25, t);
-        osc.frequency.setValueAtTime(987.77, t + 0.08);
-        g.gain.setValueAtTime(0.24, t);
-        g.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
-        osc.start(t); osc.stop(t + 0.28);
-      } else if (name === 'hit') {
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(200, t);
-        osc.frequency.exponentialRampToValueAtTime(40, t + 0.16);
-        g.gain.setValueAtTime(0.3, t);
-        g.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
-        osc.start(t); osc.stop(t + 0.16);
-      } else if (name === 'death') {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(150, t);
-        osc.frequency.exponentialRampToValueAtTime(20, t + 0.36);
-        g.gain.setValueAtTime(0.38, t);
-        g.gain.exponentialRampToValueAtTime(0.001, t + 0.36);
-        osc.start(t); osc.stop(t + 0.36);
-      }
-    } catch (e) {}
-  }
-}
-
-const audio = new SoundFX();
-
-function triggerHaptic(ms = 25) {
-  if (CONFIG.haptic && navigator.vibrate) {
-    try { navigator.vibrate(ms); } catch (e) {}
-  }
-}
-
-// ==========================================
-// 3. إدارة العرض والرسم (Canvas 2D)
-// ==========================================
-const canvas = document.getElementById('game-canvas');
-const ctx = canvas.getContext('2d', { alpha: false });
-let viewW = window.innerWidth;
-let viewH = window.innerHeight;
-let dpr = 1;
-
-function resizeCanvas() {
-  dpr = Math.min(window.devicePixelRatio || 1, 2.0);
-  viewW = window.innerWidth;
-  viewH = window.innerHeight;
-  canvas.width = Math.floor(viewW * dpr);
-  canvas.height = Math.floor(viewH * dpr);
-  canvas.style.width = viewW + 'px';
-  canvas.style.height = viewH + 'px';
-  ctx.imageSmoothingEnabled = false;
-}
-window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
-
-// ==========================================
-// 4. الثوابت الفيزيائية وحالة المحرك
-// ==========================================
-const CONSTANTS = {
-  fixedStep: 1 / 60,
-  maxAccum: 0.2,
-  gravity: 34.0,
-  maxFall: 17.5,
-  walkSpeed: 6.0,
-  runAccel: 50.0,
-  runDecel: 44.0,
-  airAccel: 30.0,
-  jumpForce: -13.0,
-  wallSlideSpeed: 3.0,
-  wallJumpX: 8.5,
-  wallJumpY: -12.2,
-  dashSpeed: 17.0,
-  dashDuration: 0.18,
-  coyoteMax: 0.1,
-  jumpBufferMax: 0.12,
-  subStepDist: 4.0,
-  maxHp: 3,
-  maxEnergy: 100,
-  energyRegenRate: 18.0,
-  empEnergyCost: 40,
-  blasterEnergyCost: 20,
-  shieldEnergyCost: 35,
-  attackCooldown: 0.28,
-  attackDuration: 0.14,
-  attackRangeX: 42,
-  attackRangeY: 34,
-  invulnDuration: 1.2
-};
-
-const sys = {
-  running: false,
-  paused: false,
-  level: 0,
-  dimension: 'REAL',
-  dimFactor: 0.0,
-  shake: 0,
-  chromatic: 0,
-  flash: 0,
-  isDead: false,
-  invulnTimer: 0,
-  campaignTotalTime: 0,
-  campaignTotalDeaths: 0,
-  activeLevelTime: 0,
-  levelDeaths: 0,
-  levelSplits: [],
-  shards: 0,
-  totalShards: 0,
-  timeScale: 1.0,
-  slowMoTimer: 0,
-  currentCheckpoint: null
-};
-
-const cam = {
-  x: 0, y: 0,
-  targetX: 0, targetY: 0,
-  lookAheadX: 0,
-  smooth: 0.085
-};
-
-const hero = {
-  x: 0, y: 0,
-  w: 24, h: 36,
-  vx: 0, vy: 0,
-  hp: CONSTANTS.maxHp,
-  energy: CONSTANTS.maxEnergy,
-  isGrounded: false,
-  isWallSliding: false,
-  wallDir: 0,
-  facing: 1,
-  canDoubleJump: true,
-  canDash: true,
-  airDashUsed: false,
-  dashCooldown: 0,
-  isDashing: false,
-  dashTimer: 0,
-  coyoteTimer: 0,
-  jumpBufferTimer: 0,
-  scaleX: 1, scaleY: 1,
-  runCycle: 0,
-  isAttacking: false,
-  attackTimer: 0,
-  attackCooldownTimer: 0,
-  shieldActive: false,
-  shieldAngle: 0,
-  empWave: { active: false, x: 0, y: 0, radius: 0, maxRadius: 130 },
-  scarf: Array.from({ length: 8 }, () => ({ x: 0, y: 0 })),
-  ghosts: []
-};
-
-const chaser = {
-  x: -600,
-  speed: 1.25
-};
-
-const boss = {
-  active: false,
-  name: 'GUARDIAN OF REALITY',
-  x: 0, y: 0,
-  w: 58, h: 68,
-  hp: 100, maxHp: 100,
-  phase: 1,
-  state: 'patrol',
-  timer: 0,
-  dir: 1,
-  invulnTimer: 0,
-  telegraphTimer: 0,
-  attackDim: 'BOTH',
-  shockwaves: [],
-  arenaHazards: []
-};
-
-let heroProjectiles = [];
-let enemyProjectiles = [];
-let currentGhostRecord = [];
-let activeReplayGhost = [];
-
-const MAX_PARTICLES = 300;
-const particles = Array.from({ length: MAX_PARTICLES }, () => ({
-  active: false,
-  x: 0, y: 0,
-  vx: 0, vy: 0,
-  life: 0,
-  maxLife: 1,
-  color: '#fff',
-  size: 3
-}));
-
-function emitParticles(x, y, color, count = 10, speedMul = 1) {
-  let spawned = 0;
-  for (let i = 0; i < MAX_PARTICLES && spawned < count; i++) {
-    const p = particles[i];
-    if (!p.active) {
-      p.active = true;
-      p.x = x;
-      p.y = y;
-      const angle = Math.random() * Math.PI * 2;
-      const spd = (Math.random() * 3.5 + 1.2) * speedMul;
-      p.vx = Math.cos(angle) * spd;
-      p.vy = Math.sin(angle) * spd;
-      p.life = 0;
-      p.maxLife = Math.random() * 0.32 + 0.2;
-      p.color = color;
-      p.size = Math.random() * 2.5 + 1.8;
-      spawned++;
-    }
-  }
-}
-
-// ==========================================
-// 5. قوالب المراحل الـ 10 الكاملة
-// ==========================================
-const LEVEL_TEMPLATES = [
-  // 1. مدينة الواقع الرقمي: تعليمية متوازنة
-  {
-    name: 'مدينة الواقع الرقمي',
-    w: 2800, h: 950,
-    spawn: { x: 120, y: 740 },
-    exit: { x: 2600, y: 440 },
-    chaserSpeed: 1.15,
-    platforms: [
-      { x: 0, y: 840, w: 900, h: 110, d: 'BOTH' },
-      { x: 1040, y: 840, w: 1760, h: 110, d: 'BOTH' },
-      { x: 380, y: 710, w: 140, h: 24, d: 'REAL' },
-      { x: 620, y: 590, w: 150, h: 24, d: 'GLITCH' },
-      { x: 860, y: 500, w: 160, h: 24, d: 'REAL' },
-      { x: 1160, y: 580, w: 150, h: 24, d: 'GLITCH' },
-      { x: 1440, y: 660, w: 150, h: 24, d: 'REAL' },
-      { x: 1720, y: 540, w: 160, h: 24, d: 'GLITCH' },
-      { x: 2020, y: 460, w: 180, h: 24, d: 'REAL' },
-      { x: 2360, y: 480, w: 300, h: 24, d: 'BOTH' }
-    ],
-    moving: [
-      { x: 920, y: 720, w: 100, h: 20, d: 'BOTH', minX: 900, maxX: 1030, spd: 1.8, dir: 1 }
-    ],
-    hazards: [
-      { x: 900, y: 900, w: 140, h: 40, d: 'BOTH' },
-      { x: 420, y: 686, w: 60, h: 24, d: 'REAL' },
-      { x: 1480, y: 636, w: 70, h: 24, d: 'REAL' }
-    ],
-    enemies: [
-      { type: 'patrol', x: 1250, y: 800, w: 26, h: 26, minX: 1120, maxX: 1400, spd: 2.0, dir: 1, alive: true, hp: 1, maxHp: 1, d: 'BOTH' },
-      { type: 'turret', x: 2060, y: 426, w: 30, h: 34, alive: true, hp: 2, maxHp: 2, shootCooldown: 1.8, timer: 0.5, d: 'REAL' }
-    ],
-    shards: [
-      { x: 700, y: 540, collected: false },
-      { x: 1240, y: 530, collected: false },
-      { x: 1800, y: 490, collected: false }
-    ],
-    checkpoints: [],
-    boss: null
-  },
-
-  // 2. انهيار السايبر المعلق: قفزات دقيقة ومنصات متحركة
-  {
-    name: 'انهيار السايبر المعلق',
-    w: 3200, h: 1000,
-    spawn: { x: 100, y: 820 },
-    exit: { x: 3000, y: 360 },
-    chaserSpeed: 1.35,
-    platforms: [
-      { x: 0, y: 900, w: 420, h: 100, d: 'BOTH' },
-      { x: 480, y: 800, w: 130, h: 24, d: 'REAL' },
-      { x: 680, y: 700, w: 140, h: 24, d: 'GLITCH' },
-      { x: 900, y: 600, w: 130, h: 24, d: 'REAL' },
-      { x: 1140, y: 500, w: 150, h: 24, d: 'GLITCH' },
-      { x: 1380, y: 590, w: 140, h: 24, d: 'REAL' },
-      { x: 1620, y: 690, w: 140, h: 24, d: 'GLITCH' },
-      { x: 1880, y: 590, w: 150, h: 24, d: 'REAL' },
-      { x: 2140, y: 490, w: 150, h: 24, d: 'GLITCH' },
-      { x: 2400, y: 420, w: 150, h: 24, d: 'REAL' },
-      { x: 2700, y: 440, w: 400, h: 80, d: 'BOTH' }
-    ],
-    moving: [
-      { x: 1140, y: 420, w: 110, h: 20, d: 'REAL', minX: 1080, maxX: 1320, spd: 2.8, dir: 1 },
-      { x: 1900, y: 510, w: 110, h: 20, d: 'GLITCH', minX: 1800, maxX: 2050, spd: 3.2, dir: 1 }
-    ],
-    hazards: [
-      { x: 420, y: 950, w: 2280, h: 40, d: 'BOTH' },
-      { x: 930, y: 576, w: 70, h: 24, d: 'REAL' },
-      { x: 1920, y: 566, w: 70, h: 24, d: 'REAL' }
-    ],
-    enemies: [
-      { type: 'stalker', x: 740, y: 660, w: 26, h: 26, minX: 680, maxX: 840, spd: 3.4, dir: 1, alive: true, hp: 2, maxHp: 2, d: 'GLITCH' },
-      { type: 'turret', x: 1420, y: 556, w: 30, h: 34, alive: true, hp: 2, maxHp: 2, shootCooldown: 1.6, timer: 1.0, d: 'REAL' },
-      { type: 'patrol', x: 2200, y: 450, w: 26, h: 26, minX: 2150, maxX: 2280, spd: 2.2, dir: 1, alive: true, hp: 1, maxHp: 1, d: 'GLITCH' }
-    ],
-    shards: [
-      { x: 750, y: 650, collected: false },
-      { x: 1200, y: 450, collected: false },
-      { x: 2210, y: 440, collected: false }
-    ],
-    checkpoints: [{ x: 1650, y: 640, activated: false }],
-    boss: null
-  },
-
-  // 3. حلبة حارس الواقع: الزعيم الأول
-  {
-    name: 'حلبة حارس الواقع (زعيم)',
-    w: 2400, h: 900,
-    spawn: { x: 150, y: 720 },
-    exit: { x: 2220, y: 720 },
-    chaserSpeed: 0,
-    platforms: [
-      { x: 0, y: 800, w: 2400, h: 100, d: 'BOTH' },
-      { x: 0, y: 0, w: 50, h: 800, d: 'BOTH' },
-      { x: 2350, y: 0, w: 50, h: 800, d: 'BOTH' },
-      { x: 300, y: 640, w: 220, h: 24, d: 'REAL' },
-      { x: 660, y: 520, w: 240, h: 24, d: 'GLITCH' },
-      { x: 1080, y: 410, w: 260, h: 24, d: 'BOTH' },
-      { x: 1520, y: 520, w: 240, h: 24, d: 'GLITCH' },
-      { x: 1900, y: 640, w: 220, h: 24, d: 'REAL' }
-    ],
-    moving: [],
-    hazards: [],
-    enemies: [],
-    shards: [
-      { x: 410, y: 590, collected: false },
-      { x: 1210, y: 350, collected: false },
-      { x: 2010, y: 590, collected: false }
-    ],
-    checkpoints: [],
-    boss: { name: 'GUARDIAN OF REALITY', spawnX: 1300, spawnY: 732 }
-  },
-
-  // 4. محطة الطاقة المهجورة: أشعة ليزر وأرضيات كهربائية
-  {
-    name: 'محطة الطاقة المهجورة',
-    w: 3000, h: 950,
-    spawn: { x: 120, y: 780 },
-    exit: { x: 2850, y: 350 },
-    chaserSpeed: 1.25,
-    platforms: [
-      { x: 0, y: 850, w: 500, h: 100, d: 'BOTH' },
-      { x: 600, y: 750, w: 160, h: 24, d: 'REAL' },
-      { x: 860, y: 660, w: 180, h: 24, d: 'GLITCH' },
-      { x: 1140, y: 560, w: 160, h: 24, d: 'REAL' },
-      { x: 1400, y: 640, w: 200, h: 24, d: 'BOTH' },
-      { x: 1700, y: 540, w: 170, h: 24, d: 'GLITCH' },
-      { x: 1980, y: 440, w: 170, h: 24, d: 'REAL' },
-      { x: 2250, y: 520, w: 180, h: 24, d: 'GLITCH' },
-      { x: 2520, y: 420, w: 480, h: 80, d: 'BOTH' }
-    ],
-    moving: [
-      { x: 1400, y: 580, w: 120, h: 20, d: 'REAL', minX: 1350, maxX: 1600, spd: 3.0, dir: 1 }
-    ],
-    hazards: [
-      { x: 500, y: 910, w: 2020, h: 40, d: 'BOTH' },
-      { x: 880, y: 636, w: 80, h: 24, d: 'GLITCH' },
-      { x: 2000, y: 416, w: 70, h: 24, d: 'REAL' }
-    ],
-    enemies: [
-      { type: 'turret', x: 1180, y: 526, w: 30, h: 34, alive: true, hp: 2, maxHp: 2, shootCooldown: 1.5, timer: 0.2, d: 'REAL' },
-      { type: 'patrol', x: 1750, y: 500, w: 26, h: 26, minX: 1710, maxX: 1840, spd: 2.2, dir: 1, alive: true, hp: 1, maxHp: 1, d: 'GLITCH' },
-      { type: 'stalker', x: 2300, y: 480, w: 26, h: 26, minX: 2260, maxX: 2390, spd: 3.2, dir: 1, alive: true, hp: 2, maxHp: 2, d: 'GLITCH' }
-    ],
-    shards: [
-      { x: 950, y: 610, collected: false },
-      { x: 1460, y: 590, collected: false },
-      { x: 2340, y: 470, collected: false }
-    ],
-    checkpoints: [{ x: 1420, y: 590, activated: false }],
-    boss: null
-  },
-
-  // 5. المدينة الممطرة: منصات زلقة ورؤية ضبابية
-  {
-    name: 'المدينة الممطرة',
-    w: 3200, h: 1000,
-    spawn: { x: 100, y: 800 },
-    exit: { x: 3050, y: 400 },
-    chaserSpeed: 1.30,
-    platforms: [
-      { x: 0, y: 880, w: 460, h: 120, d: 'BOTH' },
-      { x: 550, y: 780, w: 140, h: 24, d: 'GLITCH' },
-      { x: 780, y: 680, w: 150, h: 24, d: 'REAL' },
-      { x: 1030, y: 590, w: 150, h: 24, d: 'GLITCH' },
-      { x: 1280, y: 690, w: 160, h: 24, d: 'REAL' },
-      { x: 1540, y: 580, w: 180, h: 24, d: 'BOTH' },
-      { x: 1820, y: 480, w: 150, h: 24, d: 'REAL' },
-      { x: 2070, y: 580, w: 150, h: 24, d: 'GLITCH' },
-      { x: 2320, y: 480, w: 160, h: 24, d: 'REAL' },
-      { x: 2580, y: 400, w: 160, h: 24, d: 'GLITCH' },
-      { x: 2840, y: 460, w: 360, h: 80, d: 'BOTH' }
-    ],
-    moving: [
-      { x: 1030, y: 530, w: 100, h: 20, d: 'GLITCH', minX: 980, maxX: 1200, spd: 3.2, dir: 1 },
-      { x: 2320, y: 420, w: 110, h: 20, d: 'REAL', minX: 2280, maxX: 2480, spd: 3.0, dir: 1 }
-    ],
-    hazards: [
-      { x: 460, y: 950, w: 2380, h: 40, d: 'BOTH' },
-      { x: 800, y: 656, w: 60, h: 24, d: 'REAL' },
-      { x: 2090, y: 556, w: 60, h: 24, d: 'GLITCH' }
-    ],
-    enemies: [
-      { type: 'stalker', x: 820, y: 640, w: 26, h: 26, minX: 790, maxX: 910, spd: 3.5, dir: 1, alive: true, hp: 2, maxHp: 2, d: 'REAL' },
-      { type: 'turret', x: 1600, y: 546, w: 30, h: 34, alive: true, hp: 2, maxHp: 2, shootCooldown: 1.4, timer: 0.8, d: 'BOTH' },
-      { type: 'patrol', x: 2360, y: 440, w: 26, h: 26, minX: 2330, maxX: 2450, spd: 2.4, dir: 1, alive: true, hp: 1, maxHp: 1, d: 'REAL' }
-    ],
-    shards: [
-      { x: 850, y: 630, collected: false },
-      { x: 1630, y: 530, collected: false },
-      { x: 2650, y: 350, collected: false }
-    ],
-    checkpoints: [{ x: 1560, y: 530, activated: false }],
-    boss: null
-  },
-
-  // 6. مختبر الأبعاد: ألغاز تبديل REAL و GLITCH
-  {
-    name: 'مختبر الأبعاد',
-    w: 3000, h: 1000,
-    spawn: { x: 120, y: 800 },
-    exit: { x: 2800, y: 320 },
-    chaserSpeed: 1.20,
-    platforms: [
-      { x: 0, y: 880, w: 420, h: 100, d: 'BOTH' },
-      { x: 500, y: 780, w: 140, h: 24, d: 'REAL' },
-      { x: 740, y: 680, w: 140, h: 24, d: 'GLITCH' },
-      { x: 980, y: 580, w: 140, h: 24, d: 'REAL' },
-      { x: 1220, y: 480, w: 140, h: 24, d: 'GLITCH' },
-      { x: 1460, y: 580, w: 150, h: 24, d: 'REAL' },
-      { x: 1710, y: 680, w: 150, h: 24, d: 'GLITCH' },
-      { x: 1960, y: 580, w: 150, h: 24, d: 'REAL' },
-      { x: 2210, y: 480, w: 150, h: 24, d: 'GLITCH' },
-      { x: 2460, y: 380, w: 160, h: 24, d: 'REAL' },
-      { x: 2700, y: 400, w: 300, h: 80, d: 'BOTH' }
-    ],
-    moving: [
-      { x: 740, y: 620, w: 90, h: 20, d: 'GLITCH', minX: 700, maxX: 880, spd: 3.2, dir: 1 },
-      { x: 1960, y: 520, w: 90, h: 20, d: 'REAL', minX: 1920, maxX: 2100, spd: 3.2, dir: 1 }
-    ],
-    hazards: [
-      { x: 420, y: 940, w: 2280, h: 40, d: 'BOTH' },
-      { x: 1000, y: 556, w: 80, h: 24, d: 'REAL' },
-      { x: 2230, y: 456, w: 80, h: 24, d: 'GLITCH' }
-    ],
-    enemies: [
-      { type: 'turret', x: 550, y: 746, w: 30, h: 34, alive: true, hp: 2, maxHp: 2, shootCooldown: 1.7, timer: 0.2, d: 'REAL' },
-      { type: 'stalker', x: 1260, y: 440, w: 26, h: 26, minX: 1230, maxX: 1340, spd: 3.6, dir: 1, alive: true, hp: 2, maxHp: 2, d: 'GLITCH' },
-      { type: 'turret', x: 2510, y: 346, w: 30, h: 34, alive: true, hp: 2, maxHp: 2, shootCooldown: 1.5, timer: 1.1, d: 'REAL' }
-    ],
-    shards: [
-      { x: 780, y: 580, collected: false },
-      { x: 1520, y: 530, collected: false },
-      { x: 2270, y: 430, collected: false }
-    ],
-    checkpoints: [{ x: 1480, y: 530, activated: false }],
-    boss: null
-  },
-
-  // 7. المصنع الآلي: مكابس ومنصات عمودية سريعة
-  {
-    name: 'المصنع الآلي',
-    w: 3200, h: 1050,
-    spawn: { x: 120, y: 880 },
-    exit: { x: 3000, y: 360 },
-    chaserSpeed: 1.35,
-    platforms: [
-      { x: 0, y: 950, w: 450, h: 100, d: 'BOTH' },
-      { x: 540, y: 850, w: 140, h: 24, d: 'REAL' },
-      { x: 780, y: 740, w: 150, h: 24, d: 'GLITCH' },
-      { x: 1020, y: 640, w: 160, h: 24, d: 'REAL' },
-      { x: 1280, y: 740, w: 150, h: 24, d: 'GLITCH' },
-      { x: 1540, y: 640, w: 180, h: 24, d: 'BOTH' },
-      { x: 1820, y: 540, w: 150, h: 24, d: 'REAL' },
-      { x: 2080, y: 640, w: 150, h: 24, d: 'GLITCH' },
-      { x: 2340, y: 530, w: 150, h: 24, d: 'REAL' },
-      { x: 2600, y: 430, w: 160, h: 24, d: 'GLITCH' },
-      { x: 2850, y: 450, w: 350, h: 80, d: 'BOTH' }
-    ],
-    moving: [
-      { x: 1020, y: 580, w: 100, h: 20, d: 'REAL', minX: 980, maxX: 1180, spd: 3.5, dir: 1 },
-      { x: 1820, y: 480, w: 100, h: 20, d: 'REAL', minX: 1780, maxX: 1980, spd: 3.5, dir: 1 }
-    ],
-    hazards: [
-      { x: 450, y: 1000, w: 2400, h: 40, d: 'BOTH' },
-      { x: 800, y: 716, w: 80, h: 24, d: 'GLITCH' },
-      { x: 2100, y: 616, w: 80, h: 24, d: 'GLITCH' }
-    ],
-    enemies: [
-      { type: 'patrol', x: 580, y: 810, w: 26, h: 26, minX: 550, maxX: 660, spd: 2.6, dir: 1, alive: true, hp: 1, maxHp: 1, d: 'REAL' },
-      { type: 'turret', x: 1590, y: 606, w: 30, h: 34, alive: true, hp: 2, maxHp: 2, shootCooldown: 1.4, timer: 0.5, d: 'BOTH' },
-      { type: 'stalker', x: 2380, y: 490, w: 26, h: 26, minX: 2350, maxX: 2470, spd: 3.6, dir: 1, alive: true, hp: 2, maxHp: 2, d: 'REAL' }
-    ],
-    shards: [
-      { x: 850, y: 690, collected: false },
-      { x: 1620, y: 590, collected: false },
-      { x: 2670, y: 380, collected: false }
-    ],
-    checkpoints: [{ x: 1560, y: 590, activated: false }],
-    boss: null
-  },
-
-  // 8. متاهة الخلل: مسارات متشعبة وأبواب زمنية
-  {
-    name: 'متاهة الخلل',
-    w: 3400, h: 1050,
-    spawn: { x: 100, y: 860 },
-    exit: { x: 3200, y: 300 },
-    chaserSpeed: 1.40,
-    platforms: [
-      { x: 0, y: 940, w: 400, h: 100, d: 'BOTH' },
-      { x: 480, y: 830, w: 140, h: 24, d: 'REAL' },
-      { x: 720, y: 730, w: 150, h: 24, d: 'GLITCH' },
-      { x: 960, y: 630, w: 150, h: 24, d: 'REAL' },
-      { x: 1200, y: 530, w: 160, h: 24, d: 'GLITCH' },
-      { x: 1460, y: 630, w: 160, h: 24, d: 'BOTH' },
-      { x: 1720, y: 530, w: 150, h: 24, d: 'REAL' },
-      { x: 1980, y: 430, w: 150, h: 24, d: 'GLITCH' },
-      { x: 2240, y: 530, w: 150, h: 24, d: 'REAL' },
-      { x: 2500, y: 430, w: 160, h: 24, d: 'GLITCH' },
-      { x: 2760, y: 350, w: 160, h: 24, d: 'REAL' },
-      { x: 3020, y: 380, w: 380, h: 80, d: 'BOTH' }
-    ],
-    moving: [
-      { x: 1200, y: 470, w: 100, h: 20, d: 'GLITCH', minX: 1150, maxX: 1350, spd: 3.4, dir: 1 },
-      { x: 2500, y: 370, w: 100, h: 20, d: 'GLITCH', minX: 2450, maxX: 2650, spd: 3.5, dir: 1 }
-    ],
-    hazards: [
-      { x: 400, y: 1000, w: 2620, h: 40, d: 'BOTH' },
-      { x: 740, y: 706, w: 70, h: 24, d: 'GLITCH' },
-      { x: 2000, y: 406, w: 70, h: 24, d: 'GLITCH' }
-    ],
-    enemies: [
-      { type: 'stalker', x: 760, y: 690, w: 26, h: 26, minX: 730, maxX: 850, spd: 3.8, dir: 1, alive: true, hp: 2, maxHp: 2, d: 'GLITCH' },
-      { type: 'turret', x: 1510, y: 596, w: 30, h: 34, alive: true, hp: 2, maxHp: 2, shootCooldown: 1.3, timer: 0.3, d: 'BOTH' },
-      { type: 'turret', x: 2790, y: 316, w: 30, h: 34, alive: true, hp: 2, maxHp: 2, shootCooldown: 1.3, timer: 0.9, d: 'REAL' }
-    ],
-    shards: [
-      { x: 780, y: 680, collected: false },
-      { x: 1530, y: 580, collected: false },
-      { x: 2830, y: 300, collected: false }
-    ],
-    checkpoints: [{ x: 1490, y: 580, activated: false }],
-    boss: null
-  },
-
-  // 9. انهيار الواقع: بيئة متدهورة تتطلب سرعة فائقة
-  {
-    name: 'انهيار الواقع',
-    w: 3600, h: 1050,
-    spawn: { x: 120, y: 880 },
-    exit: { x: 3420, y: 280 },
-    chaserSpeed: 1.50,
-    platforms: [
-      { x: 0, y: 960, w: 400, h: 100, d: 'BOTH' },
-      { x: 490, y: 860, w: 140, h: 24, d: 'REAL' },
-      { x: 730, y: 760, w: 140, h: 24, d: 'GLITCH' },
-      { x: 970, y: 660, w: 140, h: 24, d: 'REAL' },
-      { x: 1220, y: 560, w: 150, h: 24, d: 'GLITCH' },
-      { x: 1470, y: 460, w: 150, h: 24, d: 'REAL' },
-      { x: 1720, y: 560, w: 160, h: 24, d: 'BOTH' },
-      { x: 1980, y: 460, w: 150, h: 24, d: 'GLITCH' },
-      { x: 2240, y: 370, w: 150, h: 24, d: 'REAL' },
-      { x: 2500, y: 470, w: 150, h: 24, d: 'GLITCH' },
-      { x: 2760, y: 380, w: 160, h: 24, d: 'REAL' },
-      { x: 3020, y: 310, w: 160, h: 24, d: 'GLITCH' },
-      { x: 3280, y: 350, w: 320, h: 80, d: 'BOTH' }
-    ],
-    moving: [
-      { x: 1220, y: 500, w: 90, h: 20, d: 'GLITCH', minX: 1180, maxX: 1370, spd: 3.8, dir: 1 },
-      { x: 2500, y: 410, w: 90, h: 20, d: 'GLITCH', minX: 2460, maxX: 2650, spd: 4.0, dir: 1 }
-    ],
-    hazards: [
-      { x: 400, y: 1010, w: 2880, h: 40, d: 'BOTH' },
-      { x: 750, y: 736, w: 70, h: 24, d: 'GLITCH' },
-      { x: 2260, y: 346, w: 70, h: 24, d: 'REAL' }
-    ],
-    enemies: [
-      { type: 'stalker', x: 770, y: 720, w: 26, h: 26, minX: 740, maxX: 850, spd: 4.0, dir: 1, alive: true, hp: 2, maxHp: 2, d: 'GLITCH' },
-      { type: 'turret', x: 1770, y: 526, w: 30, h: 34, alive: true, hp: 2, maxHp: 2, shootCooldown: 1.2, timer: 0.2, d: 'BOTH' },
-      { type: 'stalker', x: 2790, y: 340, w: 26, h: 26, minX: 2770, maxX: 2890, spd: 4.2, dir: 1, alive: true, hp: 2, maxHp: 2, d: 'REAL' }
-    ],
-    shards: [
-      { x: 790, y: 710, collected: false },
-      { x: 1790, y: 510, collected: false },
-      { x: 3080, y: 260, collected: false }
-    ],
-    checkpoints: [{ x: 1750, y: 510, activated: false }],
-    boss: null
-  },
-
-  // 10. قلب النظام: المواجهة النهائية مع زعيم الخلل الفائق
-  {
-    name: 'قلب النظام (المواجهة الختامية)',
-    w: 2600, h: 950,
-    spawn: { x: 150, y: 740 },
-    exit: { x: 2420, y: 740 },
-    chaserSpeed: 0,
-    platforms: [
-      { x: 0, y: 820, w: 2600, h: 130, d: 'BOTH' },
-      { x: 0, y: 0, w: 50, h: 820, d: 'BOTH' },
-      { x: 2550, y: 0, w: 50, h: 820, d: 'BOTH' },
-      { x: 280, y: 650, w: 220, h: 24, d: 'REAL' },
-      { x: 640, y: 530, w: 240, h: 24, d: 'GLITCH' },
-      { x: 1040, y: 410, w: 280, h: 24, d: 'BOTH' },
-      { x: 1480, y: 530, w: 240, h: 24, d: 'GLITCH' },
-      { x: 1880, y: 650, w: 220, h: 24, d: 'REAL' }
-    ],
-    moving: [],
-    hazards: [],
-    enemies: [],
-    shards: [
-      { x: 390, y: 600, collected: false },
-      { x: 1180, y: 350, collected: false },
-      { x: 1990, y: 600, collected: false }
-    ],
-    checkpoints: [],
-    boss: { name: 'CORE OF THE GLITCH', spawnX: 1400, spawnY: 752 }
-  }
-];
-
-let currentLevelData = null;
-
-function cloneLevelData(idx) {
-  return JSON.parse(JSON.stringify(LEVEL_TEMPLATES[idx]));
-}
-
-// ==========================================
-// 6. نظام الإدخال المتزامن
-// ==========================================
-const input = {
-  left: false,
-  right: false,
-  jumpHeld: false,
-  jumpPressed: false,
-  dashTrigger: false,
-  shiftTrigger: false,
-  attackTrigger: false,
-  blasterTrigger: false,
-  shieldTrigger: false,
-  empTrigger: false
-};
-
-const activePointers = {
-  left: new Set(),
-  right: new Set(),
-  jump: new Set(),
-  dash: new Set(),
-  shift: new Set(),
-  atk: new Set(),
-  blast: new Set(),
-  shield: new Set(),
-  emp: new Set()
-};
-
-function setupMultiTouchBtn(id, actionKey, isTrigger = false) {
-  const el = document.getElementById(id);
-  if (!el) return;
-
-  const onDown = (e) => {
-    e.preventDefault();
-    audio.init();
-    activePointers[actionKey].add(e.pointerId);
-    el.classList.add('pressed');
-
-    if (actionKey === 'left') input.left = true;
-    if (actionKey === 'right') input.right = true;
-    if (actionKey === 'jump') {
-      input.jumpPressed = true;
-      input.jumpHeld = true;
-      hero.jumpBufferTimer = CONSTANTS.jumpBufferMax;
-    }
-    if (actionKey === 'dash') input.dashTrigger = true;
-    if (actionKey === 'shift') input.shiftTrigger = true;
-    if (actionKey === 'atk') input.attackTrigger = true;
-    if (actionKey === 'blast') input.blasterTrigger = true;
-    if (actionKey === 'shield') input.shieldTrigger = true;
-    if (actionKey === 'emp') input.empTrigger = true;
-  };
-
-  const onUp = (e) => {
-    if (activePointers[actionKey].has(e.pointerId)) {
-      activePointers[actionKey].delete(e.pointerId);
-      if (activePointers[actionKey].size === 0) {
-        el.classList.remove('pressed');
-        if (actionKey === 'left') input.left = false;
-        if (actionKey === 'right') input.right = false;
-        if (actionKey === 'jump') input.jumpHeld = false;
-      }
-    }
-  };
-
-  el.addEventListener('pointerdown', onDown);
-  el.addEventListener('pointerup', onUp);
-  el.addEventListener('pointercancel', onUp);
-  el.addEventListener('pointerleave', onUp);
-}
-
-setupMultiTouchBtn('t-left', 'left');
-setupMultiTouchBtn('t-right', 'right');
-setupMultiTouchBtn('t-jump', 'jump');
-setupMultiTouchBtn('t-dash', 'dash', true);
-setupMultiTouchBtn('t-shift', 'shift', true);
-setupMultiTouchBtn('t-atk', 'atk', true);
-setupMultiTouchBtn('t-blast', 'blast', true);
-setupMultiTouchBtn('t-shield', 'shield', true);
-setupMultiTouchBtn('t-emp', 'emp', true);
-
-window.addEventListener('keydown', (e) => {
-  audio.init();
-  if (e.repeat) return;
-  if (e.code === 'ArrowLeft' || e.code === 'KeyA') input.left = true;
-  if (e.code === 'ArrowRight' || e.code === 'KeyD') input.right = true;
-  if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
-    input.jumpPressed = true;
-    input.jumpHeld = true;
-    hero.jumpBufferTimer = CONSTANTS.jumpBufferMax;
-  }
-  if (e.code === 'KeyJ' || e.code === 'ShiftLeft') input.dashTrigger = true;
-  if (e.code === 'KeyK' || e.code === 'KeyE') input.shiftTrigger = true;
-  if (e.code === 'KeyF') input.attackTrigger = true;
-  if (e.code === 'KeyX' || e.code === 'KeyC') input.blasterTrigger = true;
-  if (e.code === 'KeyV') input.shieldTrigger = true;
-  if (e.code === 'KeyQ') input.empTrigger = true;
-  if (e.code === 'Escape' || e.code === 'KeyP') togglePause();
-});
-
-window.addEventListener('keyup', (e) => {
-  if (e.code === 'ArrowLeft' || e.code === 'KeyA') input.left = false;
-  if (e.code === 'ArrowRight' || e.code === 'KeyD') input.right = false;
-  if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') input.jumpHeld = false;
-});
-
-window.addEventListener('blur', () => {
-  input.left = false;
-  input.right = false;
-  input.jumpHeld = false;
-  input.dashTrigger = false;
-  input.shiftTrigger = false;
-  input.attackTrigger = false;
-  input.blasterTrigger = false;
-  input.shieldTrigger = false;
-  input.empTrigger = false;
-  Object.keys(activePointers).forEach(k => activePointers[k].clear());
-  document.querySelectorAll('.touch-btn').forEach(btn => btn.classList.remove('pressed'));
-});
-
-// ==========================================
-// 7. النواة الفيزيائية والقدرات والقتال
-// ==========================================
-function checkAABB(a, b) {
-  return a.x < b.x + b.w &&
-         a.x + a.w > b.x &&
-         a.y < b.y + b.h &&
-         a.y + a.h > b.y;
-}
-
-function getActiveSolids(forDimension = sys.dimension) {
-  const lvl = currentLevelData;
-  if (!lvl) return [];
-  const solids = [];
-  const all = [...lvl.platforms, ...lvl.moving];
-  for (let i = 0; i < all.length; i++) {
-    const p = all[i];
-    if (p.d === 'BOTH' || p.d === forDimension) {
-      solids.push(p);
-    }
-  }
-  return solids;
-}
-
-function safeDimensionShift() {
-  const lvl = currentLevelData;
-  if (!lvl) return;
-  const nextDim = (sys.dimension === 'REAL') ? 'GLITCH' : 'REAL';
-  const candidateSolids = getActiveSolids(nextDim);
-
-  let hasOverlap = false;
-  for (let i = 0; i < candidateSolids.length; i++) {
-    if (checkAABB(hero, candidateSolids[i])) {
-      hasOverlap = true;
-      break;
-    }
-  }
-
-  let safeOffset = null;
-  if (hasOverlap) {
-    const offsets = [
-      { x: 0, y: -hero.h },
-      { x: 0, y: 16 },
-      { x: -hero.w, y: 0 },
-      { x: hero.w, y: 0 },
-      { x: -hero.w, y: -hero.h },
-      { x: hero.w, y: -hero.h }
-    ];
-
-    for (let o of offsets) {
-      const testBox = { x: hero.x + o.x, y: hero.y + o.y, w: hero.w, h: hero.h };
-      if (testBox.x < 0 || testBox.x + testBox.w > lvl.w || testBox.y < 0 || testBox.y + testBox.h > lvl.h) {
-        continue;
-      }
-      let free = true;
-      for (let s of candidateSolids) {
-        if (checkAABB(testBox, s)) {
-          free = false;
-          break;
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new AudioContext();
+            }
         }
-      }
-      if (free) {
-        safeOffset = o;
-        break;
-      }
-    }
 
-    if (!safeOffset) {
-      audio.play('shift_denied');
-      triggerHaptic(50);
-      return;
-    }
-  }
+        function playSound(type) {
+            if (!soundEnabled) return;
+            try {
+                initAudio();
+                const now = audioCtx.currentTime;
 
-  if (safeOffset) {
-    hero.x += safeOffset.x;
-    hero.y += safeOffset.y;
-  }
-
-  hero.x = Math.max(0, Math.min(hero.x, lvl.w - hero.w));
-  hero.y = Math.max(0, Math.min(hero.y, lvl.h - hero.h));
-
-  sys.dimension = nextDim;
-  sys.shake = CONFIG.shake ? 8 : 0;
-  audio.play('shift');
-  triggerHaptic(30);
-  emitParticles(hero.x + hero.w / 2, hero.y + hero.h / 2, sys.dimension === 'REAL' ? '#00f0ff' : '#ff007f', 24);
-
-  const badge = document.getElementById('dim-badge');
-  if (sys.dimension === 'REAL') {
-    badge.innerText = '✦ الواقع [REALITY]';
-    badge.classList.remove('glitch-mode');
-  } else {
-    badge.innerText = '✦ السايبر [GLITCH]';
-    badge.classList.add('glitch-mode');
-  }
-}
-
-function triggerDash() {
-  if (hero.isDashing || sys.isDead || hero.dashCooldown > 0) return;
-  if (!hero.isGrounded && hero.airDashUsed) return;
-
-  hero.isDashing = true;
-  hero.dashTimer = CONSTANTS.dashDuration;
-  hero.dashCooldown = 0.35;
-  if (!hero.isGrounded) hero.airDashUsed = true;
-
-  hero.vx = hero.facing * CONSTANTS.dashSpeed;
-  hero.vy = 0;
-  hero.scaleX = 1.45;
-  hero.scaleY = 0.65;
-  sys.flash = 0.28;
-  sys.shake = CONFIG.shake ? 7 : 0;
-  audio.play('dash');
-  triggerHaptic(40);
-  emitParticles(hero.x + hero.w / 2, hero.y + hero.h / 2, '#f59e0b', 16);
-}
-
-function triggerAttack() {
-  if (hero.isAttacking || hero.attackCooldownTimer > 0 || sys.isDead) return;
-  hero.isAttacking = true;
-  hero.attackTimer = CONSTANTS.attackDuration;
-  hero.attackCooldownTimer = CONSTANTS.attackCooldown;
-  audio.play('slash');
-  triggerHaptic(28);
-
-  const slashBox = {
-    x: hero.facing === 1 ? hero.x + hero.w : hero.x - CONSTANTS.attackRangeX,
-    y: hero.y - 4,
-    w: CONSTANTS.attackRangeX,
-    h: CONSTANTS.attackRangeY
-  };
-
-  const lvl = currentLevelData;
-  if (lvl && lvl.enemies) {
-    lvl.enemies.forEach(en => {
-      if (!en.alive) return;
-      if (checkAABB(slashBox, en)) {
-        en.hp -= 1;
-        audio.play('hit');
-        triggerHaptic(45);
-        sys.shake = CONFIG.shake ? 8 : 0;
-        emitParticles(en.x + en.w / 2, en.y + en.h / 2, '#f43f5e', 18);
-        hero.energy = Math.min(CONSTANTS.maxEnergy, hero.energy + 10);
-        if (en.hp <= 0) {
-          en.alive = false;
-          emitParticles(en.x + en.w / 2, en.y + en.h / 2, '#00f0ff', 24);
+                if (type === 'buy') {
+                    // Upward bright chime
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(320, now);
+                    osc.frequency.exponentialRampToValueAtTime(640, now + 0.15);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                } else if (type === 'sell') {
+                    // Double coin sound
+                    [0, 0.08].forEach((delay, i) => {
+                        const osc = audioCtx.createOscillator();
+                        const gain = audioCtx.createGain();
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(700 + (i * 250), now + delay);
+                        gain.gain.setValueAtTime(0.25, now + delay);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.12);
+                        osc.start(now + delay);
+                        osc.stop(now + delay + 0.12);
+                    });
+                } else if (type === 'day') {
+                    // Whoosh / Level sound
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(220, now);
+                    osc.frequency.exponentialRampToValueAtTime(440, now + 0.25);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                } else if (type === 'alert') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(180, now);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                }
+            } catch (e) {
+                console.error("Audio error", e);
+            }
         }
-      }
-    });
-  }
 
-  enemyProjectiles = enemyProjectiles.filter(proj => {
-    if (checkAABB(slashBox, { x: proj.x - 6, y: proj.y - 6, w: 12, h: 12 })) {
-      emitParticles(proj.x, proj.y, '#f59e0b', 10);
-      return false;
-    }
-    return true;
-  });
-
-  if (boss.active && checkAABB(slashBox, boss)) {
-    damageBoss(15);
-  }
-}
-
-function triggerBlaster() {
-  if (hero.energy < CONSTANTS.blasterEnergyCost || sys.isDead) return;
-  hero.energy -= CONSTANTS.blasterEnergyCost;
-  audio.play('blaster');
-  triggerHaptic(25);
-  sys.shake = CONFIG.shake ? 4 : 0;
-
-  heroProjectiles.push({
-    x: hero.facing === 1 ? hero.x + hero.w + 4 : hero.x - 14,
-    y: hero.y + hero.h / 2,
-    vx: hero.facing * 14.5,
-    life: 2.2,
-    w: 12, h: 6
-  });
-
-  emitParticles(hero.x + (hero.facing === 1 ? hero.w : 0), hero.y + hero.h / 2, '#38bdf8', 8);
-}
-
-function triggerShield() {
-  if (hero.shieldActive) return;
-  if (hero.energy < CONSTANTS.shieldEnergyCost || sys.isDead) return;
-  hero.energy -= CONSTANTS.shieldEnergyCost;
-  hero.shieldActive = true;
-  audio.play('shield');
-  triggerHaptic(35);
-  emitParticles(hero.x + hero.w / 2, hero.y + hero.h / 2, '#38bdf8', 18);
-}
-
-function triggerEMP() {
-  if (hero.energy < CONSTANTS.empEnergyCost || hero.empWave.active || sys.isDead) return;
-  hero.energy -= CONSTANTS.empEnergyCost;
-  hero.empWave.active = true;
-  hero.empWave.x = hero.x + hero.w / 2;
-  hero.empWave.y = hero.y + hero.h / 2;
-  hero.empWave.radius = 10;
-  audio.play('emp');
-  triggerHaptic(60);
-  sys.shake = CONFIG.shake ? 12 : 0;
-
-  enemyProjectiles = enemyProjectiles.filter(proj => {
-    const d = Math.hypot(proj.x - hero.empWave.x, proj.y - hero.empWave.y);
-    if (d < CONSTANTS.empWave.maxRadius) {
-      emitParticles(proj.x, proj.y, '#a855f7', 12);
-      return false;
-    }
-    return true;
-  });
-
-  const lvl = currentLevelData;
-  if (lvl && lvl.enemies) {
-    lvl.enemies.forEach(en => {
-      if (!en.alive) return;
-      const d = Math.hypot((en.x + en.w / 2) - hero.empWave.x, (en.y + en.h / 2) - hero.empWave.y);
-      if (d < CONSTANTS.empWave.maxRadius) {
-        en.hp -= 2;
-        emitParticles(en.x + en.w / 2, en.y + en.h / 2, '#a855f7', 22);
-        if (en.hp <= 0) en.alive = false;
-      }
-    });
-  }
-
-  if (boss.active) {
-    const d = Math.hypot((boss.x + boss.w / 2) - hero.empWave.x, (boss.y + boss.h / 2) - hero.empWave.y);
-    if (d < CONSTANTS.empWave.maxRadius) {
-      damageBoss(20);
-    }
-  }
-}
-
-function damageBoss(amount) {
-  if (!boss.active || boss.invulnTimer > 0) return;
-
-  if (boss.state !== 'vulnerable') {
-    audio.play('shift_denied');
-    emitParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, '#64748b', 8);
-    return;
-  }
-
-  boss.hp -= amount;
-  boss.invulnTimer = 0.65;
-  audio.play('hit');
-  triggerHaptic(60);
-  sys.shake = CONFIG.shake ? 12 : 0;
-  emitParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, '#fbbf24', 28, 2);
-
-  hero.vy = CONSTANTS.jumpForce * 0.78;
-  hero.vx = -hero.facing * 4.5;
-
-  const hpPct = (boss.hp / boss.maxHp) * 100;
-  if (hpPct <= 25 && boss.phase < 3) {
-    boss.phase = 3;
-    onBossPhaseTransition(3);
-  } else if (hpPct <= 60 && boss.phase < 2) {
-    boss.phase = 2;
-    onBossPhaseTransition(2);
-  }
-
-  updateBossHUD();
-
-  if (boss.hp <= 0) {
-    defeatBoss();
-  }
-}
-
-function onBossPhaseTransition(newPhase) {
-  audio.play('boss_phase');
-  sys.shake = CONFIG.shake ? 18 : 0;
-  sys.flash = 0.35;
-  emitParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, newPhase === 3 ? '#ff007f' : '#a855f7', 45, 3);
-  boss.state = 'vulnerable';
-  boss.timer = 0;
-  updateBossHUD();
-}
-
-function updateBossHUD() {
-  const hpPct = Math.max(0, (boss.hp / boss.maxHp) * 100);
-  document.getElementById('boss-hp-fill').style.width = hpPct + '%';
-  document.getElementById('boss-phase-label').innerText = `المرحلة ${boss.phase} / 3`;
-  document.getElementById('boss-name-label').innerText = boss.name;
-}
-
-function defeatBoss() {
-  boss.active = false;
-  boss.shockwaves = [];
-  boss.arenaHazards = [];
-  document.getElementById('boss-hud').style.display = 'none';
-  audio.play('boss_slam');
-  sys.shake = CONFIG.shake ? 24 : 0;
-  emitParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, '#00f0ff', 65, 3.5);
-  emitParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, '#ff007f', 65, 3.5);
-
-  SAVE_STATE.unlockedPrismScarf = true;
-  StorageManager.save(SAVE_STATE);
-}
-
-function hurtHero(amount = 1) {
-  if (sys.invulnTimer > 0 || sys.isDead) return;
-
-  // إذا كان الدرع مفعل، يمتص الضربة بالكامل
-  if (hero.shieldActive) {
-    hero.shieldActive = false;
-    audio.play('shield_break');
-    triggerHaptic(50);
-    sys.shake = CONFIG.shake ? 10 : 0;
-    emitParticles(hero.x + hero.w / 2, hero.y + hero.h / 2, '#38bdf8', 25, 2);
-    sys.invulnTimer = 0.6;
-    return;
-  }
-
-  hero.hp -= amount;
-  sys.invulnTimer = CONSTANTS.invulnDuration;
-  audio.play('hurt');
-  triggerHaptic(50);
-  sys.shake = CONFIG.shake ? 10 : 0;
-  emitParticles(hero.x + hero.w / 2, hero.y + hero.h / 2, '#ef4444', 16);
-
-  if (hero.hp <= 0) {
-    killHero();
-  }
-}
-
-function triggerBossWarning() {
-  const banner = document.getElementById('boss-warning-banner');
-  banner.style.display = 'block';
-  audio.play('boss_warning');
-  sys.shake = CONFIG.shake ? 14 : 0;
-  sys.flash = 0.25;
-  setTimeout(() => {
-    banner.style.display = 'none';
-  }, 2200);
-}
-
-function resetBossState(lvl) {
-  boss.shockwaves = [];
-  boss.arenaHazards = [];
-  if (lvl.boss) {
-    boss.active = true;
-    boss.name = lvl.boss.name || 'GUARDIAN OF REALITY';
-    boss.hp = boss.maxHp;
-    boss.phase = 1;
-    boss.state = 'patrol';
-    boss.timer = 0;
-    boss.telegraphTimer = 0;
-    boss.dir = 1;
-    boss.invulnTimer = 0;
-    boss.attackDim = 'BOTH';
-    boss.x = lvl.boss.spawnX;
-    boss.y = lvl.boss.spawnY;
-    document.getElementById('boss-hud').style.display = 'flex';
-    updateBossHUD();
-    triggerBossWarning();
-  } else {
-    boss.active = false;
-    document.getElementById('boss-hud').style.display = 'none';
-  }
-}
-
-function killHero() {
-  if (sys.isDead) return;
-  sys.isDead = true;
-
-  audio.play('death');
-  triggerHaptic(60);
-  sys.deaths++;
-  sys.levelDeaths++;
-  sys.campaignTotalDeaths++;
-  sys.shake = CONFIG.shake ? 16 : 0;
-  emitParticles(hero.x + hero.w / 2, hero.y + hero.h / 2, '#ef4444', 32, 1.8);
-
-  currentGhostRecord = [];
-  enemyProjectiles = [];
-  heroProjectiles = [];
-
-  const lvl = currentLevelData;
-  const spawnPos = sys.currentCheckpoint || lvl.spawn;
-
-  hero.x = spawnPos.x;
-  hero.y = spawnPos.y;
-  hero.vx = 0;
-  hero.vy = 0;
-  hero.hp = CONSTANTS.maxHp;
-  hero.energy = CONSTANTS.maxEnergy;
-  hero.isDashing = false;
-  hero.canDash = true;
-  hero.airDashUsed = false;
-  hero.isAttacking = false;
-  hero.shieldActive = false;
-  hero.empWave.active = false;
-
-  if (lvl.chaserSpeed > 0) {
-    chaser.x = spawnPos.x - 380;
-  }
-
-  resetBossState(lvl);
-  sys.invulnTimer = 0.25;
-  sys.isDead = false;
-}
-
-function loadLevel(idx) {
-  sys.level = idx;
-  sys.isDead = false;
-  sys.invulnTimer = 0;
-  sys.activeLevelTime = 0;
-  sys.levelDeaths = 0;
-  sys.levelSplits = [];
-  sys.currentCheckpoint = null;
-  currentGhostRecord = [];
-  enemyProjectiles = [];
-  heroProjectiles = [];
-  activeReplayGhost = SAVE_STATE.ghostTrails[idx] ? [...SAVE_STATE.ghostTrails[idx]] : [];
-
-  currentLevelData = cloneLevelData(idx);
-  const lvl = currentLevelData;
-
-  hero.x = lvl.spawn.x;
-  hero.y = lvl.spawn.y;
-  hero.vx = 0;
-  hero.vy = 0;
-  hero.hp = CONSTANTS.maxHp;
-  hero.energy = CONSTANTS.maxEnergy;
-  hero.canDoubleJump = true;
-  hero.canDash = true;
-  hero.airDashUsed = false;
-  hero.dashCooldown = 0;
-  hero.isDashing = false;
-  hero.isAttacking = false;
-  hero.shieldActive = false;
-  hero.attackTimer = 0;
-  hero.attackCooldownTimer = 0;
-  hero.empWave.active = false;
-  hero.ghosts = [];
-  sys.dimension = 'REAL';
-  sys.dimFactor = 0.0;
-  sys.shards = 0;
-  sys.totalShards = lvl.shards.length;
-
-  if (lvl.chaserSpeed > 0) {
-    chaser.x = lvl.spawn.x - 380;
-    chaser.speed = lvl.chaserSpeed;
-  } else {
-    chaser.x = -9999;
-  }
-
-  resetBossState(lvl);
-
-  for (let i = 0; i < hero.scarf.length; i++) {
-    hero.scarf[i].x = hero.x;
-    hero.scarf[i].y = hero.y + 10;
-  }
-
-  cam.x = hero.x - viewW / 2;
-  cam.y = hero.y - viewH / 2;
-  cam.lookAheadX = 0;
-
-  document.getElementById('hud-level').innerText = `المرحلة: ${idx + 1} / ${LEVEL_TEMPLATES.length}`;
-  const badge = document.getElementById('dim-badge');
-  badge.innerText = '✦ الواقع [REALITY]';
-  badge.classList.remove('glitch-mode');
-  document.getElementById('hud-delta').style.display = 'none';
-
-  // تحديث المرحلة المفتوحة في الحفظ
-  if (idx > (SAVE_STATE.unlockedLevel || 0)) {
-    SAVE_STATE.unlockedLevel = idx;
-    StorageManager.save(SAVE_STATE);
-  }
-}
-
-function restartCurrentLevel() {
-  audio.init();
-  input.left = false;
-  input.right = false;
-  input.jumpHeld = false;
-  input.dashTrigger = false;
-  input.shiftTrigger = false;
-  input.attackTrigger = false;
-  input.blasterTrigger = false;
-  input.shieldTrigger = false;
-  input.empTrigger = false;
-  loadLevel(sys.level);
-  sys.running = true;
-  sys.paused = false;
-  document.getElementById('modal-pause').classList.add('hidden');
-  document.getElementById('modal-stage-clear').classList.add('hidden');
-}
-
-// ==========================================
-// 8. منطق الزعيم والفيزياء الثابتة 60Hz
-// ==========================================
-let ghostSampleTimer = 0;
-
-function updateBossBehavior(dt) {
-  if (!boss.active) return;
-  if (boss.invulnTimer > 0) boss.invulnTimer -= dt;
-  boss.timer += dt;
-
-  const lvl = currentLevelData;
-  const arenaLeft = 80;
-  const arenaRight = lvl.w - 100 - boss.w;
-  const groundY = 820 - boss.h;
-
-  boss.arenaHazards.forEach(h => {
-    h.timer += dt;
-    if (h.timer >= h.delay && !h.active) {
-      h.active = true;
-      audio.play('boss_slam');
-      sys.shake = CONFIG.shake ? 8 : 0;
-    }
-    if (h.active && h.timer < h.delay + h.duration) {
-      if (checkAABB(hero, h)) {
-        hurtHero(1);
-      }
-    }
-  });
-  boss.arenaHazards = boss.arenaHazards.filter(h => h.timer < h.delay + h.duration);
-
-  boss.shockwaves.forEach(sw => {
-    sw.x += sw.vx * 60 * dt;
-    sw.life -= dt;
-    if (sw.dim === 'BOTH' || sw.dim === sys.dimension) {
-      if (checkAABB(hero, { x: sw.x - 14, y: groundY - 10, w: 28, h: 26 })) {
-        hurtHero(1);
-      }
-    }
-  });
-  boss.shockwaves = boss.shockwaves.filter(sw => sw.life > 0);
-
-  // أنماط الأطوار
-  if (boss.phase === 1) {
-    if (boss.state === 'patrol') {
-      boss.x += (boss.dir * 2.8) * 60 * dt;
-      if (boss.x > arenaRight - 200) { boss.x = arenaRight - 200; boss.dir = -1; }
-      if (boss.x < arenaLeft + 200) { boss.x = arenaLeft + 200; boss.dir = 1; }
-
-      if (boss.timer > 3.0) {
-        boss.state = 'telegraph';
-        boss.timer = 0;
-        boss.dir = (hero.x < boss.x) ? -1 : 1;
-        audio.play('boss_telegraph');
-      }
-    } else if (boss.state === 'telegraph') {
-      if (boss.timer > 0.7) {
-        boss.state = 'charge';
-        boss.timer = 0;
-        audio.play('dash');
-      }
-    } else if (boss.state === 'charge') {
-      boss.x += (boss.dir * 8.5) * 60 * dt;
-      if (boss.x > arenaRight || boss.x < arenaLeft || boss.timer > 1.2) {
-        boss.state = 'vulnerable';
-        boss.timer = 0;
-        audio.play('boss_slam');
-        sys.shake = CONFIG.shake ? 8 : 0;
-      }
-    } else if (boss.state === 'vulnerable') {
-      if (boss.timer > 2.0) {
-        boss.state = 'patrol';
-        boss.timer = 0;
-      }
-    }
-  } else if (boss.phase === 2) {
-    if (boss.state === 'patrol') {
-      boss.x += (boss.dir * 3.8) * 60 * dt;
-      if (boss.x > arenaRight - 200) { boss.x = arenaRight - 200; boss.dir = -1; }
-      if (boss.x < arenaLeft + 200) { boss.x = arenaLeft + 200; boss.dir = 1; }
-
-      if (boss.timer > 1.8 && boss.timer < 1.85) {
-        const pDir = (hero.x > boss.x) ? 1 : -1;
-        enemyProjectiles.push(
-          { x: boss.x + boss.w / 2, y: boss.y + 20, vx: pDir * 6.2, life: 3.2 },
-          { x: boss.x + boss.w / 2, y: boss.y + 40, vx: pDir * 5.5, life: 3.2 }
-        );
-        audio.play('turret_shot');
-      }
-
-      if (boss.timer > 3.2) {
-        boss.state = 'telegraph';
-        boss.timer = 0;
-        boss.dir = (hero.x < boss.x) ? -1 : 1;
-        boss.attackDim = (Math.random() > 0.5) ? 'REAL' : 'GLITCH';
-        audio.play('boss_telegraph');
-      }
-    } else if (boss.state === 'telegraph') {
-      if (boss.timer > 0.6) {
-        boss.state = 'charge';
-        boss.timer = 0;
-        audio.play('dash');
-      }
-    } else if (boss.state === 'charge') {
-      boss.x += (boss.dir * 10.5) * 60 * dt;
-      if (boss.x > arenaRight || boss.x < arenaLeft || boss.timer > 1.0) {
-        boss.state = 'vulnerable';
-        boss.timer = 0;
-        audio.play('boss_slam');
-        sys.shake = CONFIG.shake ? 9 : 0;
-      }
-    } else if (boss.state === 'vulnerable') {
-      if (boss.timer > 1.8) {
-        boss.state = 'patrol';
-        boss.timer = 0;
-      }
-    }
-  } else if (boss.phase === 3) {
-    if (boss.state === 'patrol') {
-      boss.x += (boss.dir * 4.4) * 60 * dt;
-      if (boss.x > arenaRight - 200) { boss.x = arenaRight - 200; boss.dir = -1; }
-      if (boss.x < arenaLeft + 200) { boss.x = arenaLeft + 200; boss.dir = 1; }
-
-      if (boss.timer > 2.6) {
-        boss.state = 'slam_prep';
-        boss.timer = 0;
-        audio.play('boss_telegraph');
-
-        boss.arenaHazards.push(
-          { x: lvl.w / 2 - 300, y: 800, w: 600, h: 20, timer: 0, delay: 0.9, duration: 2.2, active: false }
-        );
-      }
-    } else if (boss.state === 'slam_prep') {
-      boss.y -= 7.5 * 60 * dt;
-      if (boss.y < 350 || boss.timer > 0.8) {
-        boss.x = Math.max(arenaLeft, Math.min(arenaRight, hero.x - boss.w / 2));
-        boss.state = 'slam_fall';
-        boss.timer = 0;
-      }
-    } else if (boss.state === 'slam_fall') {
-      boss.y += 18.0 * 60 * dt;
-      if (boss.y >= groundY) {
-        boss.y = groundY;
-        boss.state = 'vulnerable';
-        boss.timer = 0;
-        audio.play('boss_slam');
-        sys.shake = CONFIG.shake ? 18 : 0;
-        sys.flash = 0.3;
-
-        boss.shockwaves.push(
-          { x: boss.x - 10, vx: -6.5, life: 1.8, dim: 'BOTH' },
-          { x: boss.x + boss.w + 10, vx: 6.5, life: 1.8, dim: 'BOTH' }
-        );
-      }
-    } else if (boss.state === 'vulnerable') {
-      if (boss.timer > 2.2) {
-        boss.state = 'patrol';
-        boss.timer = 0;
-      }
-    }
-  }
-
-  boss.x = Math.max(arenaLeft, Math.min(arenaRight, boss.x));
-  if (boss.state !== 'slam_prep' && boss.state !== 'slam_fall') {
-    boss.y = groundY;
-  }
-
-  if (checkAABB(hero, boss)) {
-    if (boss.state === 'vulnerable') {
-      if (hero.vy > 1.5 || hero.isDashing) {
-        damageBoss(20);
-      }
-    } else {
-      const ignoresDamage = (boss.attackDim !== 'BOTH' && boss.attackDim !== sys.dimension);
-      if (!ignoresDamage) {
-        hurtHero(1);
-      }
-    }
-  }
-}
-
-function fixedPhysics(dt) {
-  if (sys.isDead) return;
-  const lvl = currentLevelData;
-  if (!lvl) return;
-
-  if (sys.invulnTimer > 0) sys.invulnTimer -= dt;
-
-  sys.activeLevelTime += dt;
-  sys.campaignTotalTime += dt;
-
-  hero.energy = Math.min(CONSTANTS.maxEnergy, hero.energy + CONSTANTS.energyRegenRate * dt);
-  if (hero.dashCooldown > 0) hero.dashCooldown -= dt;
-  if (hero.attackCooldownTimer > 0) hero.attackCooldownTimer -= dt;
-
-  hero.shieldAngle = (hero.shieldAngle + 3.5 * dt) % (Math.PI * 2);
-
-  const targetDimFactor = (sys.dimension === 'REAL') ? 0.0 : 1.0;
-  sys.dimFactor += (targetDimFactor - sys.dimFactor) * 0.12;
-
-  ghostSampleTimer += dt;
-  if (ghostSampleTimer >= 0.03) {
-    ghostSampleTimer = 0;
-    currentGhostRecord.push({
-      t: sys.activeLevelTime,
-      x: hero.x,
-      y: hero.y,
-      dim: sys.dimension,
-      facing: hero.facing
-    });
-  }
-
-  if (SAVE_STATE.bestTimes[sys.level]) {
-    const deltaEl = document.getElementById('hud-delta');
-    const bestT = SAVE_STATE.bestTimes[sys.level] / 1000;
-    const diff = sys.activeLevelTime - bestT;
-    if (diff <= 0) {
-      deltaEl.className = 'ahead';
-      deltaEl.innerText = diff.toFixed(2);
-    } else {
-      deltaEl.className = 'behind';
-      deltaEl.innerText = '+' + diff.toFixed(2);
-    }
-  }
-
-  if (sys.slowMoTimer > 0) {
-    sys.slowMoTimer -= dt;
-    sys.timeScale = 0.5;
-  } else {
-    sys.timeScale = 1.0;
-  }
-  const effDt = dt * sys.timeScale;
-
-  if (input.shiftTrigger) {
-    safeDimensionShift();
-    input.shiftTrigger = false;
-  }
-  if (input.dashTrigger) {
-    triggerDash();
-    input.dashTrigger = false;
-  }
-  if (input.attackTrigger) {
-    triggerAttack();
-    input.attackTrigger = false;
-  }
-  if (input.blasterTrigger) {
-    triggerBlaster();
-    input.blasterTrigger = false;
-  }
-  if (input.shieldTrigger) {
-    triggerShield();
-    input.shieldTrigger = false;
-  }
-  if (input.empTrigger) {
-    triggerEMP();
-    input.empTrigger = false;
-  }
-
-  if (hero.isAttacking) {
-    hero.attackTimer -= effDt;
-    if (hero.attackTimer <= 0) hero.isAttacking = false;
-  }
-
-  if (hero.empWave.active) {
-    hero.empWave.radius += 380 * effDt;
-    if (hero.empWave.radius >= hero.empWave.maxRadius) {
-      hero.empWave.active = false;
-    }
-  }
-
-  if (lvl.chaserSpeed > 0) {
-    chaser.x += lvl.chaserSpeed * 60 * effDt;
-    if (hero.x < chaser.x) {
-      killHero();
-      return;
-    }
-  }
-
-  if (lvl.moving) {
-    lvl.moving.forEach(m => {
-      m.x += (m.spd * m.dir) * 60 * effDt;
-      if (m.x > m.maxX) { m.x = m.maxX; m.dir = -1; }
-      if (m.x < m.minX) { m.x = m.minX; m.dir = 1; }
-    });
-  }
-
-  updateBossBehavior(effDt);
-
-  // تحديث قذائف البطل (Hero Projectiles)
-  heroProjectiles = heroProjectiles.filter(proj => {
-    proj.x += proj.vx * 60 * effDt;
-    proj.life -= effDt;
-
-    const solids = getActiveSolids();
-    for (let s of solids) {
-      if (checkAABB({ x: proj.x, y: proj.y - 3, w: proj.w, h: proj.h }, s)) {
-        emitParticles(proj.x, proj.y, '#38bdf8', 10);
-        return false;
-      }
-    }
-
-    if (lvl.enemies) {
-      for (let en of lvl.enemies) {
-        if (!en.alive) continue;
-        if (checkAABB({ x: proj.x, y: proj.y - 3, w: proj.w, h: proj.h }, en)) {
-          en.hp -= 1;
-          audio.play('hit');
-          emitParticles(en.x + en.w / 2, en.y + en.h / 2, '#38bdf8', 18);
-          if (en.hp <= 0) en.alive = false;
-          return false;
+        /* ================= Commodities Setup ================= */
+        const COMMODITIES_DATA = [
+            {
+                id: 'wheat',
+                name: 'القمح البلدي',
+                category: 'محاصيل زراعية',
+                icon: '🌾',
+                basePrice: 20,
+                minPrice: 8,
+                maxPrice: 60,
+                volatility: 0.18
+            },
+            {
+                id: 'coffee',
+                name: 'حبوب البن الفاخر',
+                category: 'سلع غذائية',
+                icon: '☕',
+                basePrice: 75,
+                minPrice: 30,
+                maxPrice: 220,
+                volatility: 0.22
+            },
+            {
+                id: 'textile',
+                name: 'أقمشة وحرير',
+                category: 'مواد تصنيعية',
+                icon: '🧵',
+                basePrice: 160,
+                minPrice: 70,
+                maxPrice: 420,
+                volatility: 0.20
+            },
+            {
+                id: 'electronics',
+                name: 'رقائق إلكترونية',
+                category: 'تكنولوجيا متطورة',
+                icon: '💻',
+                basePrice: 480,
+                minPrice: 220,
+                maxPrice: 1250,
+                volatility: 0.25
+            },
+            {
+                id: 'oil',
+                name: 'براميل النفط الخام',
+                category: 'طاقة ومحروقات',
+                icon: '🛢️',
+                basePrice: 1100,
+                minPrice: 550,
+                maxPrice: 2900,
+                volatility: 0.28
+            },
+            {
+                id: 'gold',
+                name: 'سبائك الذهب الخالص',
+                category: 'معادن ثمينة',
+                icon: '🪙',
+                basePrice: 3400,
+                minPrice: 1800,
+                maxPrice: 8500,
+                volatility: 0.15
+            }
+        ];
+
+        /* ================= Market News Engine ================= */
+        const NEWS_TEMPLATES = [
+            {
+                headline: 'موجة جفاف غير مسبوقة تضرب مزارع القمح العالمية',
+                desc: 'توقعات بنقص فادح في المعروض العالمي وارتفاع قياسي في أسعار القمح.',
+                targetId: 'wheat',
+                multiplier: 1.45
+            },
+            {
+                headline: 'محصول وفير يغرق الأسواق بالحبوب والغلال',
+                desc: 'انخفاض حاد في أسعار القمح بسبب زيادة المعروض التجاري.',
+                targetId: 'wheat',
+                multiplier: 0.65
+            },
+            {
+                headline: 'افتتاح أكبر مزارع البن في أمريكا اللاتينية',
+                desc: 'وفرة هائلة في محاصيل القهوة تؤدي لتراجع الأسعار في البورصة.',
+                targetId: 'coffee',
+                multiplier: 0.70
+            },
+            {
+                headline: 'إقبال قياسي على المقاهي العالمية يرفع استهلاك البن',
+                desc: 'طلب استثنائي يرفع أسعار حبوب القهوة إلى مستويات تاريخية.',
+                targetId: 'coffee',
+                multiplier: 1.40
+            },
+            {
+                headline: 'أسبوع الموضة العالمي ينعش أسواق النسيج والحرير',
+                desc: 'طلبيات شراء ضخمة ترفع أسعار الأقمشة في البورصة بشكل ملحوظ.',
+                targetId: 'textile',
+                multiplier: 1.35
+            },
+            {
+                headline: 'أزمة حادة في سلاسل توريد الرقائق الإلكترونية',
+                desc: 'إغلاق بعض المصانع الكبرى يرفع أسعار الإلكترونيات بشكل جنوني.',
+                targetId: 'electronics',
+                multiplier: 1.50
+            },
+            {
+                headline: 'ثورة في تصنيع المعالجات تخفض تكلفة إنتاج الحواسيب',
+                desc: 'انخفاض تكاليف الإنتاج يقلل أسعار الرقائق الإلكترونية.',
+                targetId: 'electronics',
+                multiplier: 0.72
+            },
+            {
+                headline: 'توترات في ممرات الملاحة ومضائق شحن النفط',
+                desc: 'مخاوف من انقطاع الإمدادات تؤدي لقفرات سريعة في براميل النفط.',
+                targetId: 'oil',
+                multiplier: 1.40
+            },
+            {
+                headline: 'اتفاقية دولية لزيادة ضخ النفط الخام بالأسواق',
+                desc: 'هبوط أسعار براميل النفط بعد ضخ ملايين البراميل الإضافية.',
+                targetId: 'oil',
+                multiplier: 0.75
+            },
+            {
+                headline: 'اضطرابات اقتصادية عالمية تدفع المستثمرين نحو الذهب',
+                desc: 'الذهب يشهد إقبالاً تاريخياً بصفته الملاذ الآمن الأول للمال.',
+                targetId: 'gold',
+                multiplier: 1.35
+            },
+            {
+                headline: 'انتعاش العملات الرسمية يدفع كبار المستثمرين لجني أرباح الذهب',
+                desc: 'عمليات بيع مكثفة لسبائك الذهب تخفض سعرها في الأسواق.',
+                targetId: 'gold',
+                multiplier: 0.80
+            }
+        ];
+
+        /* ================= Trader Ranks ================= */
+        const RANKS = [
+            { minNetWorth: 0, title: 'بائع متجول', color: 'text-slate-400' },
+            { minNetWorth: 3000, title: 'تاجر مبتدئ', color: 'text-emerald-400' },
+            { minNetWorth: 15000, title: 'تاجر جملة معتمد', color: 'text-blue-400' },
+            { minNetWorth: 60000, title: 'رجل أعمال صاعد', color: 'text-purple-400' },
+            { minNetWorth: 250000, title: 'مستثمر استراتيجي', color: 'text-amber-400' },
+            { minNetWorth: 1000000, title: 'إمبراطور التجارة العالمية', color: 'text-rose-400 font-extrabold' }
+        ];
+
+        /* ================= Game State ================= */
+        let gameState = {
+            day: 1,
+            cash: 1000,
+            warehouseCap: 50,
+            upgradeLevel: 0,
+            debt: 0,
+            hasAdvisor: false,
+            inventory: {}, // { id: { qty: 0, avgCost: 0 } }
+            prices: {},    // { id: currentPrice }
+            prevPrices: {},// { id: prevPrice }
+            advisorHint: null,
+            transactions: []
+        };
+
+        const STORAGE_KEY = 'merchant_simulator_save_v1';
+
+        /* ================= State Initialization ================= */
+        function initGameState() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                try {
+                    gameState = JSON.parse(saved);
+                    return;
+                } catch (e) {
+                    console.error("Corrupted save file", e);
+                }
+            }
+
+            // Fresh game default state
+            gameState.day = 1;
+            gameState.cash = 1000;
+            gameState.warehouseCap = 50;
+            gameState.upgradeLevel = 0;
+            gameState.debt = 0;
+            gameState.hasAdvisor = false;
+            gameState.inventory = {};
+            gameState.prices = {};
+            gameState.prevPrices = {};
+            gameState.advisorHint = null;
+            gameState.transactions = [];
+
+            COMMODITIES_DATA.forEach(c => {
+                gameState.inventory[c.id] = { qty: 0, avgCost: 0 };
+                gameState.prices[c.id] = c.basePrice;
+                gameState.prevPrices[c.id] = c.basePrice;
+            });
+
+            saveGame();
         }
-      }
-    }
 
-    if (boss.active && checkAABB({ x: proj.x, y: proj.y - 3, w: proj.w, h: proj.h }, boss)) {
-      damageBoss(12);
-      return false;
-    }
-
-    return proj.life > 0;
-  });
-
-  if (lvl.enemies) {
-    for (let i = 0; i < lvl.enemies.length; i++) {
-      const en = lvl.enemies[i];
-      if (!en.alive) continue;
-      if (en.d !== 'BOTH' && en.d !== sys.dimension) continue;
-
-      if (en.type === 'patrol') {
-        en.x += (en.spd * en.dir) * 60 * effDt;
-        if (en.x > en.maxX) { en.x = en.maxX; en.dir = -1; }
-        if (en.x < en.minX) { en.x = en.minX; en.dir = 1; }
-      } else if (en.type === 'stalker') {
-        const dist = hero.x - en.x;
-        if (Math.abs(dist) < 260) {
-          en.dir = dist > 0 ? 1 : -1;
+        function saveGame() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(gameState));
         }
-        en.x += (en.spd * en.dir) * 60 * effDt;
-        if (en.x > en.maxX) en.x = en.maxX;
-        if (en.x < en.minX) en.x = en.minX;
-      } else if (en.type === 'turret') {
-        en.timer += effDt;
-        if (en.timer >= en.shootCooldown) {
-          en.timer = 0;
-          const dir = (hero.x > en.x) ? 1 : -1;
-          enemyProjectiles.push({
-            x: en.x + en.w / 2,
-            y: en.y + 12,
-            vx: dir * 5.4,
-            life: 3.5
-          });
-          audio.play('turret_shot');
+
+        /* ================= Calculations ================= */
+        function getUsedWarehouseSpace() {
+            let used = 0;
+            for (let id in gameState.inventory) {
+                used += gameState.inventory[id].qty || 0;
+            }
+            return used;
         }
-      }
 
-      if (checkAABB(hero, en)) {
-        if (hero.vy > 1.2 || hero.isDashing) {
-          en.hp -= 1;
-          audio.play('hit');
-          triggerHaptic(35);
-          sys.shake = CONFIG.shake ? 8 : 0;
-          emitParticles(en.x + en.w / 2, en.y + en.h / 2, '#00f0ff', 20);
-          hero.vy = CONSTANTS.jumpForce * 0.72;
-          hero.canDash = true;
-          hero.airDashUsed = false;
-          if (en.hp <= 0) en.alive = false;
-        } else {
-          hurtHero(1);
+        function getInventoryValue() {
+            let val = 0;
+            for (let id in gameState.inventory) {
+                const item = gameState.inventory[id];
+                const price = gameState.prices[id] || 0;
+                val += (item.qty || 0) * price;
+            }
+            return val;
         }
-      }
-    }
-  }
 
-  enemyProjectiles = enemyProjectiles.filter(proj => {
-    proj.x += proj.vx * 60 * effDt;
-    proj.life -= effDt;
-
-    if (checkAABB(hero, { x: proj.x - 6, y: proj.y - 6, w: 12, h: 12 })) {
-      hurtHero(1);
-      return false;
-    }
-
-    const solids = getActiveSolids();
-    for (let s of solids) {
-      if (checkAABB({ x: proj.x - 4, y: proj.y - 4, w: 8, h: 8 }, s)) {
-        emitParticles(proj.x, proj.y, '#f59e0b', 8);
-        return false;
-      }
-    }
-
-    return proj.life > 0;
-  });
-
-  if (hero.isDashing) {
-    hero.dashTimer -= effDt;
-    hero.ghosts.push({ x: hero.x, y: hero.y, alpha: 0.75, color: '#f59e0b' });
-    if (hero.dashTimer <= 0) hero.isDashing = false;
-  } else {
-    let targetVx = 0;
-    if (input.left) {
-      targetVx = -CONSTANTS.walkSpeed;
-      hero.facing = -1;
-    } else if (input.right) {
-      targetVx = CONSTANTS.walkSpeed;
-      hero.facing = 1;
-    }
-
-    const accel = hero.isGrounded ? (targetVx !== 0 ? CONSTANTS.runAccel : CONSTANTS.runDecel) : CONSTANTS.airAccel;
-    if (hero.vx < targetVx) hero.vx = Math.min(targetVx, hero.vx + accel * effDt);
-    else if (hero.vx > targetVx) hero.vx = Math.max(targetVx, hero.vx - accel * effDt);
-
-    if (hero.isWallSliding && hero.vy > 0) {
-      hero.vy = Math.min(CONSTANTS.wallSlideSpeed, hero.vy + (CONSTANTS.gravity * 0.3) * effDt);
-    } else {
-      hero.vy = Math.min(CONSTANTS.maxFall, hero.vy + CONSTANTS.gravity * effDt);
-    }
-  }
-
-  if (hero.isGrounded && Math.abs(hero.vx) > 0.4) {
-    hero.runCycle += Math.abs(hero.vx) * 0.15;
-  } else {
-    hero.runCycle = 0;
-  }
-
-  hero.scaleX += (1 - hero.scaleX) * 0.16;
-  hero.scaleY += (1 - hero.scaleY) * 0.16;
-
-  if (hero.isGrounded) {
-    hero.coyoteTimer = CONSTANTS.coyoteMax;
-    hero.canDoubleJump = true;
-    hero.canDash = true;
-    hero.airDashUsed = false;
-  } else {
-    hero.coyoteTimer = Math.max(0, hero.coyoteTimer - effDt);
-  }
-
-  if (hero.jumpBufferTimer > 0) hero.jumpBufferTimer -= effDt;
-
-  if (hero.jumpBufferTimer > 0) {
-    if (hero.isWallSliding) {
-      hero.vy = CONSTANTS.wallJumpY;
-      hero.vx = -hero.wallDir * CONSTANTS.wallJumpX;
-      hero.facing = -hero.wallDir;
-      hero.isWallSliding = false;
-      hero.jumpBufferTimer = 0;
-      hero.canDash = true;
-      hero.airDashUsed = false;
-      hero.scaleX = 0.72;
-      hero.scaleY = 1.38;
-      audio.play('walljump');
-      triggerHaptic(20);
-      emitParticles(hero.x + (hero.wallDir === 1 ? hero.w : 0), hero.y + hero.h / 2, '#00f0ff', 14);
-    } else if (hero.coyoteTimer > 0) {
-      hero.vy = CONSTANTS.jumpForce;
-      hero.isGrounded = false;
-      hero.coyoteTimer = 0;
-      hero.jumpBufferTimer = 0;
-      hero.scaleX = 0.74;
-      hero.scaleY = 1.36;
-      audio.play('jump');
-      triggerHaptic(20);
-      emitParticles(hero.x + hero.w / 2, hero.y + hero.h, '#ffffff', 8);
-    } else if (hero.canDoubleJump) {
-      hero.vy = CONSTANTS.jumpForce * 0.92;
-      hero.canDoubleJump = false;
-      hero.jumpBufferTimer = 0;
-      hero.scaleX = 0.8;
-      hero.scaleY = 1.3;
-      audio.play('jump');
-      triggerHaptic(25);
-      emitParticles(hero.x + hero.w / 2, hero.y + hero.h, '#00f0ff', 12);
-    }
-  }
-
-  if (!input.jumpHeld && hero.vy < -3.0 && !hero.isDashing) {
-    hero.vy += 30.0 * effDt;
-  }
-
-  const solids = getActiveSolids();
-  hero.isWallSliding = false;
-  hero.wallDir = 0;
-
-  const totalDx = hero.vx * 60 * effDt;
-  const stepsX = Math.max(1, Math.ceil(Math.abs(totalDx) / CONSTANTS.subStepDist));
-  const stepDx = totalDx / stepsX;
-
-  for (let s = 0; s < stepsX; s++) {
-    hero.x += stepDx;
-    for (let i = 0; i < solids.length; i++) {
-      const p = solids[i];
-      if (checkAABB(hero, p)) {
-        if (stepDx > 0) {
-          hero.x = p.x - hero.w;
-          if (!hero.isGrounded && hero.vy > 0) {
-            hero.isWallSliding = true;
-            hero.wallDir = 1;
-          }
-        } else if (stepDx < 0) {
-          hero.x = p.x + p.w;
-          if (!hero.isGrounded && hero.vy > 0) {
-            hero.isWallSliding = true;
-            hero.wallDir = -1;
-          }
+        function getNetWorth() {
+            return (gameState.cash + getInventoryValue()) - gameState.debt;
         }
-        hero.vx = 0;
-        hero.isDashing = false;
-        break;
-      }
-    }
-  }
 
-  const totalDy = hero.vy * 60 * effDt;
-  const stepsY = Math.max(1, Math.ceil(Math.abs(totalDy) / CONSTANTS.subStepDist));
-  const stepDy = totalDy / stepsY;
-  const wasGrounded = hero.isGrounded;
-  hero.isGrounded = false;
-
-  for (let s = 0; s < stepsY; s++) {
-    hero.y += stepDy;
-    for (let i = 0; i < solids.length; i++) {
-      const p = solids[i];
-      if (checkAABB(hero, p)) {
-        if (stepDy > 0) {
-          hero.y = p.y - hero.h;
-          hero.vy = 0;
-          hero.isGrounded = true;
-          if (!wasGrounded) {
-            hero.scaleX = 1.28;
-            hero.scaleY = 0.72;
-          }
-        } else if (stepDy < 0) {
-          hero.y = p.y + p.h;
-          hero.vy = 0;
+        function getCurrentRank() {
+            const nw = getNetWorth();
+            let current = RANKS[0];
+            for (let r of RANKS) {
+                if (nw >= r.minNetWorth) {
+                    current = r;
+                }
+            }
+            return current;
         }
-        break;
-      }
-    }
-  }
 
-  const neckX = hero.x + (hero.facing === 1 ? 5 : 19);
-  const neckY = hero.y + 11;
-  hero.scarf[0].x = neckX;
-  hero.scarf[0].y = neckY;
-
-  for (let i = 1; i < hero.scarf.length; i++) {
-    const cur = hero.scarf[i];
-    const prev = hero.scarf[i - 1];
-    const wave = Math.sin(performance.now() * 0.012 + i) * 1.5;
-    const dragX = -hero.facing * (Math.abs(hero.vx) * 0.8 + 2.5);
-    const liftY = -hero.vy * 0.25;
-
-    cur.x += (prev.x + dragX - cur.x) * 0.38;
-    cur.y += (prev.y + liftY + wave - cur.y) * 0.38 + 0.6;
-  }
-
-  for (let i = 0; i < lvl.hazards.length; i++) {
-    const h = lvl.hazards[i];
-    if (h.d === 'BOTH' || h.d === sys.dimension) {
-      if (checkAABB(hero, h)) {
-        killHero();
-        return;
-      }
-    }
-  }
-
-  if (hero.y > lvl.h + 80) {
-    killHero();
-    return;
-  }
-
-  // تفعيل نقاط الحفظ (Checkpoints)
-  if (lvl.checkpoints) {
-    lvl.checkpoints.forEach(cp => {
-      if (!cp.activated && checkAABB(hero, { x: cp.x - 20, y: cp.y - 30, w: 40, h: 40 })) {
-        cp.activated = true;
-        sys.currentCheckpoint = { x: cp.x, y: cp.y };
-        audio.play('shard');
-        emitParticles(cp.x, cp.y, '#10b981', 15);
-      }
-    });
-  }
-
-  // جمع الشظايا
-  lvl.shards.forEach(s => {
-    if (!s.collected && checkAABB(hero, { x: s.x - 16, y: s.y - 16, w: 32, h: 32 })) {
-      s.collected = true;
-      sys.shards++;
-      hero.energy = Math.min(CONSTANTS.maxEnergy, hero.energy + 35);
-      sys.levelSplits.push(sys.activeLevelTime);
-      audio.play('shard');
-      triggerHaptic(25);
-      emitParticles(s.x, s.y, '#fbbf24', 20);
-    }
-  });
-
-  const ex = lvl.exit;
-  const canExit = (sys.shards >= sys.totalShards) && (!boss.active);
-  if (canExit && checkAABB(hero, { x: ex.x, y: ex.y, w: 38, h: 62 })) {
-    completeLevelSuccess();
-    return;
-  }
-
-  for (let i = hero.ghosts.length - 1; i >= 0; i--) {
-    hero.ghosts[i].alpha -= 0.08;
-    if (hero.ghosts[i].alpha <= 0) hero.ghosts.splice(i, 1);
-  }
-
-  const lookAheadTarget = hero.facing * Math.min(Math.abs(hero.vx) * 12, 70);
-  cam.lookAheadX += (lookAheadTarget - cam.lookAheadX) * 0.05;
-
-  cam.targetX = hero.x - viewW / 2 + hero.w / 2 + cam.lookAheadX;
-  cam.targetY = hero.y - viewH / 2 + hero.h / 2;
-  cam.x += (cam.targetX - cam.x) * cam.smooth;
-  cam.y += (cam.targetY - cam.y) * cam.smooth;
-  cam.x = Math.max(0, Math.min(cam.x, lvl.w - viewW));
-  cam.y = Math.max(0, Math.min(cam.y, lvl.h - viewH));
-
-  for (let i = 0; i < MAX_PARTICLES; i++) {
-    const p = particles[i];
-    if (p.active) {
-      p.x += p.vx * 60 * effDt;
-      p.y += p.vy * 60 * effDt;
-      p.life += effDt;
-      if (p.life >= p.maxLife) p.active = false;
-    }
-  }
-
-  document.getElementById('hp-bar-fill').style.width = (hero.hp / CONSTANTS.maxHp * 100) + '%';
-  document.getElementById('energy-bar-fill').style.width = (hero.energy / CONSTANTS.maxEnergy * 100) + '%';
-
-  const m = String(Math.floor(sys.activeLevelTime / 60)).padStart(2, '0');
-  const s = String(Math.floor(sys.activeLevelTime % 60)).padStart(2, '0');
-  const ms = String(Math.floor((sys.activeLevelTime * 100) % 100)).padStart(2, '0');
-  document.getElementById('hud-stats').innerText = `💀 ${sys.deaths} | 💎 ${sys.shards}/${sys.totalShards} | ⏱️ ${m}:${s}.${ms}`;
-}
-
-// ==========================================
-// 9. محرك الرسم المتطور والمؤثرات
-// ==========================================
-function renderCityParallax(lvlW, lvlH) {
-  const skyGrad = ctx.createLinearGradient(0, cam.y, 0, cam.y + viewH);
-  const r1 = Math.floor(4 + (18 - 4) * sys.dimFactor);
-  const g1 = Math.floor(6 + (2 - 6) * sys.dimFactor);
-  const b1 = Math.floor(16 + (28 - 16) * sys.dimFactor);
-  skyGrad.addColorStop(0, `rgb(${r1}, ${g1}, ${b1})`);
-  skyGrad.addColorStop(1, '#010204');
-  ctx.fillStyle = skyGrad;
-  ctx.fillRect(cam.x, cam.y, viewW, viewH);
-
-  ctx.save();
-  const farOffset = cam.x * 0.15;
-  const farBuildingW = 120;
-  const farColor = `rgba(${Math.floor(10 + 20 * sys.dimFactor)}, ${Math.floor(20 - 10 * sys.dimFactor)}, ${Math.floor(40 + 20 * sys.dimFactor)}, 0.4)`;
-  ctx.fillStyle = farColor;
-  for (let x = -farBuildingW; x < viewW + farBuildingW; x += farBuildingW) {
-    const worldX = Math.floor((cam.x + x - (farOffset % farBuildingW)) / farBuildingW) * farBuildingW;
-    const h = 380 + Math.sin(worldX * 0.005) * 140;
-    const by = cam.y + viewH - h;
-    ctx.fillRect(cam.x + x - (farOffset % farBuildingW), by, farBuildingW - 6, h);
-  }
-  ctx.restore();
-
-  ctx.save();
-  const midOffset = cam.x * 0.35;
-  const midW = 90;
-  for (let x = -midW; x < viewW + midW; x += midW) {
-    const worldX = Math.floor((cam.x + x - (midOffset % midW)) / midW) * midW;
-    const h = 260 + Math.sin(worldX * 0.01) * 90;
-    const bx = cam.x + x - (midOffset % midW);
-    const by = cam.y + viewH - h;
-
-    ctx.fillStyle = '#080d1a';
-    ctx.fillRect(bx, by, midW - 4, h);
-    ctx.fillStyle = (sys.dimFactor < 0.5) ? 'rgba(0, 240, 255, 0.5)' : 'rgba(255, 0, 127, 0.5)';
-    ctx.fillRect(bx, by, midW - 4, 3);
-  }
-  ctx.restore();
-}
-
-function renderPlayer() {
-  ctx.save();
-
-  if (sys.invulnTimer > 0 && Math.floor(performance.now() / 60) % 2 === 0) {
-    ctx.globalAlpha = 0.35;
-  }
-
-  ctx.translate(hero.x + hero.w / 2, hero.y + hero.h / 2);
-  ctx.scale(hero.scaleX, hero.scaleY);
-
-  const primaryCol = (sys.dimFactor < 0.5) ? '#00f0ff' : '#ff007f';
-  if (!CONFIG.lowFX) {
-    ctx.shadowColor = primaryCol;
-    ctx.shadowBlur = 12;
-  }
-
-  const legOffset1 = Math.sin(hero.runCycle) * 6;
-  const legOffset2 = Math.sin(hero.runCycle + Math.PI) * 6;
-
-  ctx.strokeStyle = '#334155';
-  ctx.lineWidth = 3.5;
-  ctx.lineCap = 'round';
-
-  ctx.beginPath();
-  ctx.moveTo(-4 * hero.facing, 8);
-  ctx.lineTo(-6 * hero.facing + legOffset2, 18);
-  ctx.stroke();
-
-  ctx.strokeStyle = '#64748b';
-  ctx.beginPath();
-  ctx.moveTo(4 * hero.facing, 8);
-  ctx.lineTo(6 * hero.facing + legOffset1, 18);
-  ctx.stroke();
-
-  ctx.fillStyle = '#0f172a';
-  ctx.fillRect(-8, -8, 16, 18);
-  ctx.strokeStyle = primaryCol;
-  ctx.lineWidth = 1.5;
-  ctx.strokeRect(-8, -8, 16, 18);
-
-  ctx.fillStyle = primaryCol;
-  ctx.fillRect(-2, -3, 4, 6);
-
-  ctx.fillStyle = '#1e293b';
-  ctx.fillRect(-9, -18, 18, 11);
-  ctx.fillStyle = primaryCol;
-  const visorX = (hero.facing === 1) ? -1 : -8;
-  ctx.fillRect(visorX, -15, 10, 4);
-
-  if (hero.isAttacking) {
-    ctx.save();
-    ctx.strokeStyle = '#f43f5e';
-    ctx.lineWidth = 4;
-    ctx.shadowColor = '#f43f5e';
-    ctx.shadowBlur = 18;
-    ctx.beginPath();
-    const arcX = 8 * hero.facing;
-    ctx.arc(arcX, 0, 26, -Math.PI / 3, Math.PI / 3, hero.facing === -1);
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  ctx.restore();
-
-  // رسم درع الطاقة إذا كان مفعلاً
-  if (hero.shieldActive) {
-    ctx.save();
-    ctx.strokeStyle = '#38bdf8';
-    ctx.lineWidth = 2.5;
-    ctx.shadowColor = '#38bdf8';
-    ctx.shadowBlur = 18;
-    ctx.beginPath();
-    ctx.arc(hero.x + hero.w / 2, hero.y + hero.h / 2, 26, 0, Math.PI * 2);
-    ctx.stroke();
-
-    // عقدة مدارية متحركة حول الدرع
-    const orbX = hero.x + hero.w / 2 + Math.cos(hero.shieldAngle) * 26;
-    const orbY = hero.y + hero.h / 2 + Math.sin(hero.shieldAngle) * 26;
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(orbX, orbY, 4, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  }
-
-  // رسم وشاح البطل
-  ctx.save();
-  ctx.strokeStyle = SAVE_STATE.unlockedPrismScarf
-    ? `hsl(${(performance.now() * 0.1) % 360}, 100%, 65%)`
-    : primaryCol;
-  if (!CONFIG.lowFX) {
-    ctx.shadowColor = ctx.strokeStyle;
-    ctx.shadowBlur = 12;
-  }
-  ctx.lineCap = 'round';
-  for (let i = 0; i < hero.scarf.length - 1; i++) {
-    const p1 = hero.scarf[i];
-    const p2 = hero.scarf[i + 1];
-    ctx.lineWidth = Math.max(1.5, 4.5 - i * 0.4);
-    ctx.beginPath();
-    ctx.moveTo(p1.x, p1.y);
-    ctx.quadraticCurveTo(p1.x, p1.y, p2.x, p2.y);
-    ctx.stroke();
-  }
-  ctx.restore();
-}
-
-function renderBoss() {
-  if (!boss.active) return;
-  const lvl = currentLevelData;
-  ctx.save();
-
-  if (boss.state === 'telegraph' || boss.state === 'slam_prep') {
-    ctx.save();
-    ctx.strokeStyle = (boss.phase === 3) ? '#ff0055' : '#f59e0b';
-    ctx.lineWidth = 2.5;
-    ctx.setLineDash([8, 6]);
-    ctx.shadowColor = ctx.strokeStyle;
-    ctx.shadowBlur = 12;
-    ctx.beginPath();
-    if (boss.state === 'telegraph') {
-      const beamTargetX = boss.dir === 1 ? boss.x + 900 : boss.x - 900;
-      ctx.moveTo(boss.x + boss.w / 2, boss.y + boss.h / 2);
-      ctx.lineTo(beamTargetX, boss.y + boss.h / 2);
-    } else {
-      ctx.moveTo(boss.x + boss.w / 2, boss.y + boss.h);
-      ctx.lineTo(boss.x + boss.w / 2, 820);
-    }
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  if (boss.invulnTimer > 0 && Math.floor(performance.now() / 50) % 2 === 0) {
-    ctx.globalAlpha = 0.45;
-  }
-
-  let bossColor = '#ff0055';
-  let bossGlow = '#ff0055';
-
-  if (boss.state === 'vulnerable') {
-    bossColor = '#fbbf24';
-    bossGlow = '#f59e0b';
-  } else if (boss.phase === 2) {
-    bossColor = (boss.attackDim === 'REAL') ? '#00f0ff' : '#ff007f';
-    bossGlow = bossColor;
-  } else if (boss.phase === 3) {
-    bossColor = '#a855f7';
-    bossGlow = '#ff0055';
-  }
-
-  ctx.fillStyle = '#0f172a';
-  ctx.fillRect(boss.x, boss.y, boss.w, boss.h);
-
-  ctx.strokeStyle = bossColor;
-  ctx.lineWidth = 3;
-  if (!CONFIG.lowFX) {
-    ctx.shadowColor = bossGlow;
-    ctx.shadowBlur = (boss.state === 'vulnerable') ? 25 : 15;
-  }
-  ctx.strokeRect(boss.x, boss.y, boss.w, boss.h);
-
-  ctx.fillStyle = bossColor;
-  ctx.fillRect(boss.x + boss.w / 2 - 8, boss.y + boss.h / 2 - 8, 16, 16);
-
-  ctx.fillStyle = '#ffffff';
-  const eyeX = (boss.dir === 1) ? boss.x + boss.w - 14 : boss.x + 8;
-  ctx.fillRect(eyeX, boss.y + 12, 8, 6);
-
-  if (boss.state === 'vulnerable') {
-    ctx.strokeStyle = '#fbbf24';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(boss.x + boss.w / 2, boss.y + boss.h / 2, boss.w * 0.75, 0, Math.PI * 2);
-    ctx.stroke();
-  }
-
-  ctx.restore();
-
-  boss.shockwaves.forEach(sw => {
-    ctx.save();
-    ctx.strokeStyle = '#ff007f';
-    ctx.lineWidth = 4;
-    ctx.shadowColor = '#ff007f';
-    ctx.shadowBlur = 15;
-    ctx.beginPath();
-    ctx.arc(sw.x, 820 - 10, 16, Math.PI, 0, false);
-    ctx.stroke();
-    ctx.restore();
-  });
-
-  boss.arenaHazards.forEach(h => {
-    ctx.save();
-    if (!h.active) {
-      ctx.fillStyle = 'rgba(239, 68, 68, 0.2)';
-      ctx.fillRect(h.x, h.y, h.w, h.h);
-      ctx.strokeStyle = '#ef4444';
-      ctx.setLineDash([8, 8]);
-      ctx.strokeRect(h.x, h.y, h.w, h.h);
-    } else {
-      ctx.fillStyle = 'rgba(239, 68, 68, 0.85)';
-      ctx.shadowColor = '#f43f5e';
-      ctx.shadowBlur = 20;
-      ctx.fillRect(h.x, h.y, h.w, h.h);
-    }
-    ctx.restore();
-  });
-}
-
-function render() {
-  ctx.save();
-  ctx.scale(dpr, dpr);
-
-  let sx = 0, sy = 0;
-  if (CONFIG.shake && sys.shake > 0) {
-    sx = (Math.random() - 0.5) * sys.shake;
-    sy = (Math.random() - 0.5) * sys.shake;
-    sys.shake *= 0.88;
-    if (sys.shake < 0.2) sys.shake = 0;
-  }
-  ctx.translate(-Math.floor(cam.x + sx), -Math.floor(cam.y + sy));
-
-  const lvl = currentLevelData;
-  if (!lvl) {
-    ctx.restore();
-    return;
-  }
-
-  renderCityParallax(lvl.w, lvl.h);
-
-  ctx.save();
-  ctx.strokeStyle = (sys.dimFactor < 0.5) ? 'rgba(0, 240, 255, 0.08)' : 'rgba(255, 0, 127, 0.08)';
-  ctx.lineWidth = 1;
-  const step = 64;
-  for (let x = 0; x < lvl.w; x += step) {
-    if (x >= cam.x - step && x <= cam.x + viewW + step) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0); ctx.lineTo(x, lvl.h);
-      ctx.stroke();
-    }
-  }
-  for (let y = 0; y < lvl.h; y += step) {
-    if (y >= cam.y - step && y <= cam.y + viewH + step) {
-      ctx.beginPath();
-      ctx.moveTo(0, y); ctx.lineTo(lvl.w, y);
-      ctx.stroke();
-    }
-  }
-  ctx.restore();
-
-  if (CONFIG.ghost && activeReplayGhost.length > 0) {
-    let targetSample = null;
-    for (let i = 0; i < activeReplayGhost.length; i++) {
-      if (activeReplayGhost[i].t >= sys.activeLevelTime) {
-        targetSample = activeReplayGhost[i];
-        break;
-      }
-    }
-    if (targetSample) {
-      ctx.save();
-      ctx.globalAlpha = 0.28;
-      ctx.fillStyle = '#94a3b8';
-      ctx.fillRect(targetSample.x, targetSample.y, hero.w, hero.h);
-      ctx.restore();
-    }
-  }
-
-  if (lvl.chaserSpeed > 0 && chaser.x > -1000) {
-    ctx.save();
-    const grad = ctx.createLinearGradient(chaser.x - 140, 0, chaser.x, 0);
-    grad.addColorStop(0, 'rgba(239, 68, 68, 0)');
-    grad.addColorStop(1, 'rgba(239, 68, 68, 0.65)');
-    ctx.fillStyle = grad;
-    ctx.fillRect(chaser.x - 140, 0, 140, lvl.h);
-
-    ctx.strokeStyle = '#ef4444';
-    if (!CONFIG.lowFX) {
-      ctx.shadowColor = '#f43f5e';
-      ctx.shadowBlur = 20;
-    }
-    ctx.lineWidth = 3.5;
-    ctx.beginPath();
-    ctx.moveTo(chaser.x, 0);
-    ctx.lineTo(chaser.x, lvl.h);
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  // رسم نقاط الحفظ
-  if (lvl.checkpoints) {
-    lvl.checkpoints.forEach(cp => {
-      ctx.save();
-      ctx.fillStyle = cp.activated ? '#10b981' : '#64748b';
-      ctx.shadowColor = cp.activated ? '#10b981' : 'transparent';
-      ctx.shadowBlur = 12;
-      ctx.fillRect(cp.x - 8, cp.y - 20, 16, 20);
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(cp.x - 4, cp.y - 16, 8, 4);
-      ctx.restore();
-    });
-  }
-
-  const allPlatforms = [...lvl.platforms, ...lvl.moving];
-  allPlatforms.forEach(p => {
-    if (p.x + p.w < cam.x - 40 || p.x > cam.x + viewW + 40 || p.y + p.h < cam.y - 40 || p.y > cam.y + viewH + 40) return;
-
-    const active = (p.d === 'BOTH' || p.d === sys.dimension);
-    ctx.save();
-    if (!active) {
-      ctx.globalAlpha = 0.22;
-      ctx.strokeStyle = (p.d === 'REAL') ? '#00f0ff' : '#ff007f';
-      ctx.lineWidth = 1.5;
-      ctx.setLineDash([4, 4]);
-      ctx.strokeRect(p.x, p.y, p.w, p.h);
-    } else {
-      if (p.d === 'BOTH') {
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(p.x, p.y, p.w, p.h);
-        ctx.strokeStyle = '#334155';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(p.x, p.y, p.w, p.h);
-      } else if (p.d === 'REAL') {
-        ctx.fillStyle = '#0369a1';
-        if (!CONFIG.lowFX) {
-          ctx.shadowColor = '#00f0ff';
-          ctx.shadowBlur = 12;
+        function getWarehouseUpgradeCost() {
+            return Math.floor(500 * Math.pow(1.6, gameState.upgradeLevel));
         }
-        ctx.fillRect(p.x, p.y, p.w, p.h);
-        ctx.fillStyle = '#00f0ff';
-        ctx.fillRect(p.x, p.y, p.w, 3);
-      } else {
-        ctx.fillStyle = '#be185d';
-        if (!CONFIG.lowFX) {
-          ctx.shadowColor = '#ff007f';
-          ctx.shadowBlur = 14;
+
+        /* ================= UI Updates ================= */
+        function updateUI() {
+            const netWorth = getNetWorth();
+            const usedSpace = getUsedWarehouseSpace();
+            const rank = getCurrentRank();
+
+            // Header stats
+            document.getElementById('stat-cash').textContent = '$' + gameState.cash.toLocaleString();
+            document.getElementById('stat-networth').textContent = '$' + Math.max(0, netWorth).toLocaleString();
+            document.getElementById('stat-day').textContent = 'اليوم ' + gameState.day;
+            
+            const spacePct = Math.round((usedSpace / gameState.warehouseCap) * 100);
+            document.getElementById('stat-space-pct').textContent = spacePct + '%';
+            document.getElementById('stat-space').textContent = `${usedSpace} / ${gameState.warehouseCap} وحدة`;
+
+            const rankBadge = document.getElementById('rank-badge');
+            rankBadge.textContent = rank.title;
+            rankBadge.className = 'font-bold ' + rank.color;
+
+            // Bank Tab UI
+            document.getElementById('bank-debt-amount').textContent = '$' + gameState.debt.toLocaleString();
+            const maxBorrow = Math.max(2000, Math.floor(netWorth * 0.7));
+            document.getElementById('bank-max-borrow').textContent = '$' + maxBorrow.toLocaleString();
+            
+            // Warehouse Tab UI
+            document.getElementById('upgrade-current-cap').textContent = gameState.warehouseCap + ' وحدة';
+            document.getElementById('upgrade-cost').textContent = '$' + getWarehouseUpgradeCost().toLocaleString();
+
+            // Advisor Tab UI
+            const advBtn = document.getElementById('advisor-toggle-btn');
+            const advStatus = document.getElementById('advisor-status');
+            const advContractStatus = document.getElementById('advisor-contract-status');
+            const advText = document.getElementById('analyst-text');
+
+            if (gameState.hasAdvisor) {
+                advBtn.textContent = 'إلغاء عقد المستشار';
+                advBtn.className = 'w-full bg-rose-600/80 hover:bg-rose-500 active:scale-95 text-white font-bold py-3 rounded-xl shadow-lg transition-all-custom';
+                advStatus.textContent = 'نشط ✅';
+                advStatus.className = 'text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded font-bold';
+                advContractStatus.textContent = 'موظف نشط';
+                advContractStatus.className = 'text-emerald-400 font-bold text-xs';
+
+                if (gameState.advisorHint) {
+                    advText.innerHTML = gameState.advisorHint;
+                } else {
+                    advText.textContent = 'أقوم بمراقبة حركة المضاربين وكبار التجار، سأوافيك بأحدث التسريبات قريباً!';
+                }
+            } else {
+                advBtn.textContent = 'توظيف المستشار المالي ($80/يوم)';
+                advBtn.className = 'w-full bg-purple-600 hover:bg-purple-500 active:scale-95 text-white font-bold py-3 rounded-xl shadow-lg shadow-purple-600/20 text-xs sm:text-sm transition-all-custom';
+                advStatus.textContent = 'غير نشط';
+                advStatus.className = 'text-[10px] text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded';
+                advContractStatus.textContent = 'غير موظف';
+                advContractStatus.className = 'text-slate-400 font-semibold text-xs';
+                advText.textContent = 'قم بتوظيف مستشار مالي من قسم الخدمات للحصول على توقعات وتحليلات السوق اليومية!';
+            }
+
+            // Render Commodities List
+            renderCommodities();
+
+            // Render Transaction Log
+            renderTransactionLog();
         }
-        ctx.fillRect(p.x, p.y, p.w, p.h);
-        ctx.fillStyle = '#ff007f';
-        ctx.fillRect(p.x, p.y, p.w, 3);
-      }
-    }
-    ctx.restore();
-  });
 
-  if (lvl.enemies) {
-    lvl.enemies.forEach(en => {
-      if (!en.alive || (en.d !== 'BOTH' && en.d !== sys.dimension)) return;
-      ctx.save();
-      if (en.type === 'turret') {
-        ctx.fillStyle = '#64748b';
-        ctx.fillRect(en.x, en.y, en.w, en.h);
-        ctx.fillStyle = '#f43f5e';
-        ctx.beginPath();
-        ctx.arc(en.x + en.w / 2, en.y + 12, 6, 0, Math.PI * 2);
-        ctx.fill();
-      } else if (en.type === 'stalker') {
-        ctx.fillStyle = '#a855f7';
-        if (!CONFIG.lowFX) {
-          ctx.shadowColor = '#a855f7';
-          ctx.shadowBlur = 14;
+        /* ================= Render Commodities ================= */
+        function renderCommodities() {
+            const container = document.getElementById('commodities-list');
+            container.innerHTML = '';
+
+            COMMODITIES_DATA.forEach(item => {
+                const price = gameState.prices[item.id] || item.basePrice;
+                const prevPrice = gameState.prevPrices[item.id] || price;
+                const owned = (gameState.inventory[item.id] && gameState.inventory[item.id].qty) || 0;
+                const avgCost = (gameState.inventory[item.id] && gameState.inventory[item.id].avgCost) || 0;
+
+                const diff = price - prevPrice;
+                const pctChange = prevPrice > 0 ? ((diff / prevPrice) * 100).toFixed(1) : 0;
+                const isUp = diff >= 0;
+
+                let profitPctText = '';
+                if (owned > 0 && avgCost > 0) {
+                    const profitMargin = (((price - avgCost) / avgCost) * 100).toFixed(1);
+                    const pSign = profitMargin >= 0 ? '+' : '';
+                    const pClass = profitMargin >= 0 ? 'text-emerald-400' : 'text-rose-400';
+                    profitPctText = `<span class="${pClass} font-bold mr-1">(${pSign}${profitMargin}%)</span>`;
+                }
+
+                const card = document.createElement('div');
+                card.className = 'bg-slate-900 border border-slate-800/90 rounded-2xl p-4 flex flex-col justify-between shadow-md hover:border-slate-700/80 transition-all-custom relative overflow-hidden group';
+
+                card.innerHTML = `
+                    <div>
+                        <!-- Header with Icon & Name -->
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center text-2xl group-hover:scale-110 transition duration-200">
+                                    ${item.icon}
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-slate-100 text-base">${item.name}</h4>
+                                    <span class="text-[11px] text-slate-400">${item.category}</span>
+                                </div>
+                            </div>
+                            <!-- Price Trend Badge -->
+                            <div class="text-left">
+                                <div class="text-xs font-bold flex items-center justify-end gap-1 ${isUp ? 'text-emerald-400' : 'text-rose-400'}">
+                                    <i class="fa-solid ${isUp ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down'}"></i>
+                                    <span dir="ltr">${isUp ? '+' : ''}${pctChange}%</span>
+                                </div>
+                                <div class="text-xs text-slate-400">اليوم</div>
+                            </div>
+                        </div>
+
+                        <!-- Price & Inventory Status -->
+                        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800/60 mb-3 space-y-1.5 text-xs">
+                            <div class="flex justify-between items-center">
+                                <span class="text-slate-400">سعر الوحدة:</span>
+                                <span class="text-base font-extrabold text-slate-100">$${price.toLocaleString()}</span>
+                            </div>
+                            <div class="flex justify-between items-center pt-1 border-t border-slate-800/60">
+                                <span class="text-slate-400">المتوفر لديك:</span>
+                                <span class="font-bold text-slate-200">${owned} وحدة ${profitPctText}</span>
+                            </div>
+                            ${owned > 0 ? `
+                            <div class="flex justify-between items-center text-[11px] text-slate-400">
+                                <span>متوسط التكلفة:</span>
+                                <span>$${avgCost.toLocaleString()}</span>
+                            </div>` : ''}
+                        </div>
+                    </div>
+
+                    <!-- Quick Trade Action Button -->
+                    <div class="grid grid-cols-2 gap-2 mt-1">
+                        <button onclick="openTradeModal('${item.id}', 'buy')" class="w-full bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-slate-950 border border-emerald-500/30 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-95">
+                            <i class="fa-solid fa-cart-shopping"></i>
+                            <span>شراء</span>
+                        </button>
+                        <button onclick="openTradeModal('${item.id}', 'sell')" class="w-full bg-rose-600/20 hover:bg-rose-600 text-rose-400 hover:text-white border border-rose-500/30 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-95" ${owned <= 0 ? 'disabled style="opacity: 0.4; pointer-events: none;"' : ''}>
+                            <i class="fa-solid fa-hand-holding-dollar"></i>
+                            <span>بيع</span>
+                        </button>
+                    </div>
+                `;
+
+                container.appendChild(card);
+            });
         }
-        ctx.fillRect(en.x, en.y, en.w, en.h);
-        ctx.fillStyle = '#fff';
-        const eyeX = (en.dir === 1) ? en.x + en.w - 7 : en.x + 3;
-        ctx.fillRect(eyeX, en.y + 7, 5, 5);
-      } else {
-        ctx.fillStyle = '#ff0055';
-        if (!CONFIG.lowFX) {
-          ctx.shadowColor = '#ff0055';
-          ctx.shadowBlur = 12;
+
+        /* ================= Trade Modal Handling ================= */
+        let currentModalItem = null;
+        let currentTradeMode = 'buy'; // 'buy' or 'sell'
+
+        function openTradeModal(itemId, mode = 'buy') {
+            currentModalItem = COMMODITIES_DATA.find(i => i.id === itemId);
+            if (!currentModalItem) return;
+
+            currentTradeMode = mode;
+            const price = gameState.prices[itemId] || currentModalItem.basePrice;
+            const owned = (gameState.inventory[itemId] && gameState.inventory[itemId].qty) || 0;
+            const freeSpace = gameState.warehouseCap - getUsedWarehouseSpace();
+
+            document.getElementById('modal-icon').textContent = currentModalItem.icon;
+            document.getElementById('modal-title').textContent = currentModalItem.name;
+            document.getElementById('modal-price').textContent = `السعر للوحدة: $${price.toLocaleString()}`;
+            document.getElementById('modal-owned').textContent = `${owned} وحدة`;
+            document.getElementById('modal-available-space').textContent = `${freeSpace} وحدة`;
+
+            setTradeMode(mode);
+            setQuantity(1);
+
+            document.getElementById('trade-modal').classList.remove('hidden');
         }
-        ctx.fillRect(en.x, en.y, en.w, en.h);
-        ctx.fillStyle = '#fff';
-        const eyeX = (en.dir === 1) ? en.x + en.w - 7 : en.x + 3;
-        ctx.fillRect(eyeX, en.y + 7, 5, 5);
-      }
-      ctx.restore();
-    });
-  }
 
-  // رسم قذائف البطل (Blaster)
-  heroProjectiles.forEach(proj => {
-    ctx.save();
-    ctx.fillStyle = '#38bdf8';
-    if (!CONFIG.lowFX) {
-      ctx.shadowColor = '#38bdf8';
-      ctx.shadowBlur = 14;
-    }
-    ctx.fillRect(proj.x, proj.y - 3, proj.w, proj.h);
-    ctx.restore();
-  });
+        function closeTradeModal() {
+            document.getElementById('trade-modal').classList.add('hidden');
+        }
 
-  // رسم قذائف الأعداء
-  enemyProjectiles.forEach(proj => {
-    ctx.save();
-    ctx.fillStyle = '#f43f5e';
-    if (!CONFIG.lowFX) {
-      ctx.shadowColor = '#f43f5e';
-      ctx.shadowBlur = 12;
-    }
-    ctx.beginPath();
-    ctx.arc(proj.x, proj.y, 5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  });
+        function setTradeMode(mode) {
+            currentTradeMode = mode;
+            const buyBtn = document.getElementById('mode-buy-btn');
+            const sellBtn = document.getElementById('mode-sell-btn');
+            const actionBtn = document.getElementById('modal-action-btn');
+            const totalLabel = document.getElementById('modal-total-label');
 
-  if (hero.empWave.active) {
-    ctx.save();
-    ctx.strokeStyle = 'rgba(168, 85, 247, 0.75)';
-    ctx.lineWidth = 4;
-    if (!CONFIG.lowFX) {
-      ctx.shadowColor = '#a855f7';
-      ctx.shadowBlur = 20;
-    }
-    ctx.beginPath();
-    ctx.arc(hero.empWave.x, hero.empWave.y, hero.empWave.radius, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.restore();
-  }
+            if (mode === 'buy') {
+                buyBtn.className = 'py-2 rounded-lg font-bold text-xs bg-emerald-500 text-slate-950 shadow transition';
+                sellBtn.className = 'py-2 rounded-lg font-bold text-xs text-slate-400 hover:text-slate-200 transition';
+                actionBtn.className = 'w-full bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-black py-3 rounded-xl shadow-lg shadow-emerald-500/20 text-sm transition-all-custom cursor-pointer';
+                actionBtn.textContent = 'تأكيد الشراء وإيداع البضاعة';
+                totalLabel.textContent = 'إجمالي المطلوب دفعه:';
+            } else {
+                sellBtn.className = 'py-2 rounded-lg font-bold text-xs bg-rose-500 text-white shadow transition';
+                buyBtn.className = 'py-2 rounded-lg font-bold text-xs text-slate-400 hover:text-slate-200 transition';
+                actionBtn.className = 'w-full bg-rose-500 hover:bg-rose-400 active:scale-95 text-white font-black py-3 rounded-xl shadow-lg shadow-rose-500/20 text-sm transition-all-custom cursor-pointer';
+                actionBtn.textContent = 'تأكيد البيع واستلام النقد';
+                totalLabel.textContent = 'إجمالي العائد النقدي:';
+            }
+            onQtyChange();
+        }
 
-  renderBoss();
+        function adjustQty(delta) {
+            const input = document.getElementById('modal-qty-input');
+            let val = parseInt(input.value) || 1;
+            val = Math.max(1, val + delta);
+            input.value = val;
+            onQtyChange();
+        }
 
-  lvl.hazards.forEach(h => {
-    if (h.d === 'BOTH' || h.d === sys.dimension) {
-      ctx.save();
-      ctx.fillStyle = '#ef4444';
-      if (!CONFIG.lowFX) {
-        ctx.shadowColor = '#f43f5e';
-        ctx.shadowBlur = 12;
-      }
-      const count = Math.floor(h.w / 16);
-      for (let i = 0; i < count; i++) {
-        ctx.beginPath();
-        ctx.moveTo(h.x + i * 16, h.y + h.h);
-        ctx.lineTo(h.x + i * 16 + 8, h.y);
-        ctx.lineTo(h.x + (i + 1) * 16, h.y + h.h);
-        ctx.fill();
-      }
-      ctx.restore();
-    }
-  });
+        function setQuantity(val) {
+            const input = document.getElementById('modal-qty-input');
+            input.value = Math.max(1, val);
+            onQtyChange();
+        }
 
-  lvl.shards.forEach(s => {
-    if (!s.collected) {
-      ctx.save();
-      ctx.fillStyle = '#fbbf24';
-      if (!CONFIG.lowFX) {
-        ctx.shadowColor = '#f59e0b';
-        ctx.shadowBlur = 16;
-      }
-      const wave = Math.sin(performance.now() * 0.006) * 4;
-      ctx.beginPath();
-      ctx.arc(s.x, s.y + wave, 9, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
-  });
+        function setMaxQuantity() {
+            if (!currentModalItem) return;
+            const price = gameState.prices[currentModalItem.id];
+            
+            if (currentTradeMode === 'buy') {
+                const freeSpace = gameState.warehouseCap - getUsedWarehouseSpace();
+                const affordable = Math.floor(gameState.cash / price);
+                const maxBuy = Math.min(freeSpace, affordable);
+                setQuantity(Math.max(1, maxBuy));
+            } else {
+                const owned = (gameState.inventory[currentModalItem.id] && gameState.inventory[currentModalItem.id].qty) || 0;
+                setQuantity(Math.max(1, owned));
+            }
+        }
 
-  const ex = lvl.exit;
-  const opened = (sys.shards >= sys.totalShards) && (!boss.active);
-  ctx.save();
-  ctx.strokeStyle = opened ? '#10b981' : '#475569';
-  ctx.lineWidth = 3.5;
-  if (!CONFIG.lowFX && opened) {
-    ctx.shadowColor = '#34d399';
-    ctx.shadowBlur = 20;
-  }
-  ctx.strokeRect(ex.x, ex.y, 38, 62);
-  if (opened) {
-    ctx.fillStyle = 'rgba(16, 185, 129, 0.25)';
-    ctx.fillRect(ex.x, ex.y, 38, 62);
-  }
-  ctx.restore();
+        function onQtyChange() {
+            if (!currentModalItem) return;
+            const input = document.getElementById('modal-qty-input');
+            let qty = parseInt(input.value) || 0;
+            if (qty < 1) qty = 1;
 
-  hero.ghosts.forEach(g => {
-    ctx.save();
-    ctx.globalAlpha = g.alpha * 0.7;
-    ctx.fillStyle = g.color;
-    ctx.fillRect(g.x, g.y, hero.w, hero.h);
-    ctx.restore();
-  });
+            const price = gameState.prices[currentModalItem.id];
+            const total = qty * price;
+            document.getElementById('modal-total-price').textContent = '$' + total.toLocaleString();
+        }
 
-  renderPlayer();
+        function executeTrade() {
+            if (!currentModalItem) return;
+            const input = document.getElementById('modal-qty-input');
+            const qty = parseInt(input.value) || 0;
+            if (qty <= 0) {
+                showToast('الرجاء إدخال كمية صحيحة', 'error');
+                return;
+            }
 
-  for (let i = 0; i < MAX_PARTICLES; i++) {
-    const p = particles[i];
-    if (p.active) {
-      ctx.save();
-      ctx.globalAlpha = 1 - (p.life / p.maxLife);
-      ctx.fillStyle = p.color;
-      ctx.fillRect(p.x, p.y, p.size, p.size);
-      ctx.restore();
-    }
-  }
+            const itemId = currentModalItem.id;
+            const price = gameState.prices[itemId];
+            const total = qty * price;
+            const itemData = gameState.inventory[itemId];
 
-  if (sys.flash > 0) {
-    ctx.fillStyle = `rgba(255, 255, 255, ${sys.flash})`;
-    ctx.fillRect(cam.x, cam.y, viewW, viewH);
-    sys.flash -= 0.04;
-  }
+            if (currentTradeMode === 'buy') {
+                const freeSpace = gameState.warehouseCap - getUsedWarehouseSpace();
+                if (qty > freeSpace) {
+                    playSound('alert');
+                    showToast(`لا توجد سعة تخزين كافية في المستودع! المتبقي: ${freeSpace} وحدة`, 'error');
+                    return;
+                }
+                if (total > gameState.cash) {
+                    playSound('alert');
+                    showToast(`لا تملك رصيد كافي لإتمام هذه الصفقة! المطلوب: $${total.toLocaleString()}`, 'error');
+                    return;
+                }
 
-  ctx.restore();
-}
+                // Deduct cash, add inventory
+                gameState.cash -= total;
+                const oldQty = itemData.qty || 0;
+                const oldTotalCost = oldQty * (itemData.avgCost || 0);
+                const newTotalCost = oldTotalCost + total;
+                const newQty = oldQty + qty;
 
-// ==========================================
-// 10. الحلقة المركزية ونظام التدفق
-// ==========================================
-let lastTime = performance.now();
-let accumulator = 0;
+                itemData.qty = newQty;
+                itemData.avgCost = Math.round(newTotalCost / newQty);
 
-function engineLoop(now) {
-  let delta = (now - lastTime) / 1000;
-  if (delta > CONSTANTS.maxAccum) delta = CONSTANTS.maxAccum;
-  lastTime = now;
+                logTransaction(`شراء ${qty} وحدة من ${currentModalItem.name}`, -total, 'buy');
+                playSound('buy');
+                showToast(`تم شراء ${qty} من ${currentModalItem.name} بنجاح!`, 'success');
+            } else {
+                // Sell Mode
+                const owned = itemData.qty || 0;
+                if (qty > owned) {
+                    playSound('alert');
+                    showToast(`أنت لا تملك هذه الكمية للبيع! المتوفر: ${owned} وحدة`, 'error');
+                    return;
+                }
 
-  if (sys.running && !sys.paused) {
-    accumulator += delta;
-    while (accumulator >= CONSTANTS.fixedStep) {
-      fixedPhysics(CONSTANTS.fixedStep);
-      accumulator -= CONSTANTS.fixedStep;
-    }
-  }
+                gameState.cash += total;
+                itemData.qty -= qty;
+                if (itemData.qty === 0) {
+                    itemData.avgCost = 0;
+                }
 
-  render();
-  requestAnimationFrame(engineLoop);
-}
+                logTransaction(`بيع ${qty} وحدة من ${currentModalItem.name}`, total, 'sell');
+                playSound('sell');
+                showToast(`تم بيع ${qty} من ${currentModalItem.name} مقابل $${total.toLocaleString()}!`, 'success');
+            }
 
-function evaluateStagePerformance(timeSeconds, deaths) {
-  if (deaths === 0 && timeSeconds < 55) return { rank: 'S+', title: 'أسطورة السايبر التنافسية!' };
-  if (deaths <= 2 && timeSeconds < 85) return { rank: 'S', title: 'خبير الأبعاد الخارق' };
-  if (deaths <= 6 && timeSeconds < 120) return { rank: 'A', title: 'عدّاء رقمي محترف' };
-  if (deaths <= 12) return { rank: 'B', title: 'مقاتل صامد' };
-  return { rank: 'C', title: 'ناجٍ بصعوبة' };
-}
+            saveGame();
+            closeTradeModal();
+            updateUI();
+        }
 
-function evaluateCampaignPerformance(totalTimeSeconds, totalDeaths) {
-  if (totalDeaths === 0 && totalTimeSeconds < 500) return { rank: 'S+', title: 'سيد الأبعاد المطلق (Grandmaster S+)!' };
-  if (totalDeaths <= 10 && totalTimeSeconds < 750) return { rank: 'S', title: 'أسطورة السايبر الكبرى' };
-  if (totalDeaths <= 25 && totalTimeSeconds < 1100) return { rank: 'A', title: 'قاهر الفجوة الرقمية' };
-  if (totalDeaths <= 50) return { rank: 'B', title: 'بطل الصمود السيبراني' };
-  return { rank: 'C', title: 'ناجٍ من انهيار الواقع' };
-}
+        /* ================= Advance Day Engine ================= */
+        function advanceDay() {
+            gameState.day += 1;
 
-function completeLevelSuccess() {
-  sys.running = false;
-  const lvlTimeMs = Math.round(sys.activeLevelTime * 1000);
-  const evalResult = evaluateStagePerformance(sys.activeLevelTime, sys.levelDeaths);
+            // Bank Interest
+            if (gameState.debt > 0) {
+                const interest = Math.ceil(gameState.debt * 0.05);
+                gameState.debt += interest;
+                logTransaction(`فوائد يومية على القرض المصرفي (5%)`, -interest, 'fee');
+            }
 
-  const prevBest = SAVE_STATE.bestTimes[sys.level];
-  if (!prevBest || lvlTimeMs < prevBest) {
-    SAVE_STATE.bestTimes[sys.level] = lvlTimeMs;
-    SAVE_STATE.bestRanks[sys.level] = evalResult.rank;
-    SAVE_STATE.bestSplits[sys.level] = [...sys.levelSplits];
-    SAVE_STATE.ghostTrails[sys.level] = [...currentGhostRecord];
-  }
+            // Financial Advisor Fee
+            if (gameState.hasAdvisor) {
+                const advisorFee = 80;
+                if (gameState.cash >= advisorFee) {
+                    gameState.cash -= advisorFee;
+                    logTransaction(`أتعاب استشارة المستشار المالي اليومية`, -advisorFee, 'fee');
+                } else {
+                    // Cannot pay advisor
+                    gameState.hasAdvisor = false;
+                    showToast('تم إنهاء عقد المستشار المالي بسبب عدم توفر سيولة نقدية لدفع راتبه!', 'warning');
+                }
+            }
 
-  // فتح المرحلة التالية
-  if (sys.level + 1 > (SAVE_STATE.unlockedLevel || 0) && sys.level + 1 < LEVEL_TEMPLATES.length) {
-    SAVE_STATE.unlockedLevel = sys.level + 1;
-  }
-  StorageManager.save(SAVE_STATE);
+            // Store previous prices
+            gameState.prevPrices = { ...gameState.prices };
 
-  const m = String(Math.floor(sys.activeLevelTime / 60)).padStart(2, '0');
-  const s = String(Math.floor(sys.activeLevelTime % 60)).padStart(2, '0');
-  const ms = String(Math.floor((sys.activeLevelTime * 100) % 100)).padStart(2, '0');
+            // Pick Random News Event (50% chance each day)
+            let chosenEvent = null;
+            if (Math.random() < 0.65) {
+                chosenEvent = NEWS_TEMPLATES[Math.floor(Math.random() * NEWS_TEMPLATES.length)];
+                document.getElementById('news-headline').textContent = chosenEvent.headline;
+                document.getElementById('news-desc').textContent = chosenEvent.desc;
+                document.getElementById('news-time').textContent = `اليوم ${gameState.day}`;
+            } else {
+                document.getElementById('news-headline').textContent = 'استقرار نسبي في حركة التجارة الدولية';
+                document.getElementById('news-desc').textContent = 'حركة التداول تسير بوتيرة هادئة بلا تقلبات جيوسياسية مفاجئة.';
+                document.getElementById('news-time').textContent = `اليوم ${gameState.day}`;
+            }
 
-  if (sys.level + 1 < LEVEL_TEMPLATES.length) {
-    document.getElementById('clear-rank-label').innerText = evalResult.rank;
-    document.getElementById('clear-title-label').innerText = `تم تطهير: ${LEVEL_TEMPLATES[sys.level].name}`;
-    document.getElementById('clear-stats-desc').innerText =
-      `الوقت المستغرق: ${m}:${s}.${ms}\nعدد مرات السقوط: ${sys.levelDeaths}\n${evalResult.title}`;
-    document.getElementById('modal-stage-clear').classList.remove('hidden');
-  } else {
-    finishCampaign();
-  }
-}
+            // Fluctuating Prices Logic
+            COMMODITIES_DATA.forEach(item => {
+                const oldPrice = gameState.prices[item.id] || item.basePrice;
+                // Normal random volatility between -volatility and +volatility
+                const randomPct = (Math.random() * (item.volatility * 2)) - item.volatility;
+                let newPrice = oldPrice * (1 + randomPct);
 
-function finishCampaign() {
-  sys.running = false;
-  const m = String(Math.floor(sys.campaignTotalTime / 60)).padStart(2, '0');
-  const s = String(Math.floor(sys.campaignTotalTime % 60)).padStart(2, '0');
-  const ms = String(Math.floor((sys.campaignTotalTime * 100) % 100)).padStart(2, '0');
+                // Apply news event shock if affected
+                if (chosenEvent && chosenEvent.targetId === item.id) {
+                    newPrice = newPrice * chosenEvent.multiplier;
+                }
 
-  const finalEval = evaluateCampaignPerformance(sys.campaignTotalTime, sys.campaignTotalDeaths);
+                // Clamping within limits
+                newPrice = Math.max(item.minPrice, Math.min(item.maxPrice, newPrice));
+                gameState.prices[item.id] = Math.round(newPrice);
+            });
 
-  document.getElementById('rank-slot').innerHTML = `
-    <div class="rank-text">${finalEval.rank}</div>
-    <div class="reward-box">✨ مبروك! أنهيت الـ 10 مراحل وفزت بوشاح المنشور النيوني الأسطوري</div>
-  `;
-  document.getElementById('menu-title').innerText = "🏆 اكتمال الحملة السيبرانية الكبرى!";
-  document.getElementById('menu-desc').innerText =
-    `تم إنهاء جميع المراحل الـ 10 وهزيمة زعماء الواقع والخلل!\n` +
-    `مجموع أزمنة الحملة: ${m}:${s}.${ms}\n` +
-    `إجمالي وفيات الحملة: ${sys.campaignTotalDeaths}\nالتقييم العام النهائي: رتبة ${finalEval.rank}`;
-  document.getElementById('btn-start').innerText = 'بدء تحدٍ تنافسي جديد';
-  document.getElementById('modal-menu').classList.remove('hidden');
-}
+            // Generate Advisor Tip for Tomorrow if advisor is active
+            if (gameState.hasAdvisor) {
+                generateAdvisorHint();
+            } else {
+                gameState.advisorHint = null;
+            }
 
-function startNewCampaign() {
-  audio.init();
-  if (document.documentElement.requestFullscreen) {
-    document.documentElement.requestFullscreen().catch(() => {});
-  }
-  document.getElementById('modal-menu').classList.add('hidden');
-  document.getElementById('rank-slot').innerHTML = '';
+            playSound('day');
+            showToast(`أشرق اليوم ${gameState.day}! تم تحديث أسعار البورصة`, 'info');
+            saveGame();
+            updateUI();
+        }
 
-  sys.deaths = 0;
-  sys.campaignTotalDeaths = 0;
-  sys.campaignTotalTime = 0;
+        function generateAdvisorHint() {
+            // Pick a random commodity and give advice
+            const randomItem = COMMODITIES_DATA[Math.floor(Math.random() * COMMODITIES_DATA.length)];
+            const price = gameState.prices[randomItem.id];
+            
+            if (price < (randomItem.basePrice * 0.85)) {
+                gameState.advisorHint = `💡 <strong class="text-emerald-400">توصية شراء:</strong> سعر <strong>${randomItem.name}</strong> منخفض جداً دون قيمته العادلة، نتوقع ارتداداً صعودياً قريباً!`;
+            } else if (price > (randomItem.basePrice * 1.25)) {
+                gameState.advisorHint = `⚠️ <strong class="text-rose-400">توصية بيع:</strong> سعر <strong>${randomItem.name}</strong> في ذروة تضخمية، ننصح بجني الأرباح والتخفف منه!`;
+            } else {
+                gameState.advisorHint = `📊 <strong class="text-amber-400">تحليل فني:</strong> تداول <strong>${randomItem.name}</strong> مستقر، راقب مستويات الدعم والمقاومة.`;
+            }
+        }
 
-  loadLevel(0);
-  sys.running = true;
-  sys.paused = false;
-}
+        /* ================= Bank & Upgrades Logic ================= */
+        function takeLoan(amount) {
+            const netWorth = getNetWorth();
+            const maxBorrow = Math.max(2000, Math.floor(netWorth * 0.7));
 
-function populateStageSelect() {
-  const container = document.getElementById('stages-container');
-  container.innerHTML = '';
-  const maxUnlocked = SAVE_STATE.unlockedLevel || 0;
+            if (gameState.debt + amount > maxBorrow) {
+                playSound('alert');
+                showToast(`البنك يرفض منحك هذا القرض! الحد الائتماني المتاح: $${(maxBorrow - gameState.debt).toLocaleString()}`, 'error');
+                return;
+            }
 
-  LEVEL_TEMPLATES.forEach((tmpl, idx) => {
-    const isLocked = idx > maxUnlocked;
-    const isBoss = (idx === 2 || idx === 9);
-    const bestRank = SAVE_STATE.bestRanks[idx] || '-';
-    let bestTimeStr = '--:--';
-    if (SAVE_STATE.bestTimes[idx]) {
-      const sec = SAVE_STATE.bestTimes[idx] / 1000;
-      const m = String(Math.floor(sec / 60)).padStart(2, '0');
-      const s = String(Math.floor(sec % 60)).padStart(2, '0');
-      bestTimeStr = `${m}:${s}`;
-    }
+            gameState.debt += amount;
+            gameState.cash += amount;
+            logTransaction(`اقتراض بنكي سريع`, amount, 'loan');
+            playSound('sell');
+            showToast(`تم إيداع $${amount.toLocaleString()} في حسابك البنكي!`, 'success');
+            saveGame();
+            updateUI();
+        }
 
-    const card = document.createElement('div');
-    card.className = `stage-item ${isLocked ? 'locked' : ''} ${isBoss ? 'boss-stage' : ''}`;
-    card.innerHTML = `
-      <div class="stage-num">${isBoss ? '👑 ' : ''}مرحلة ${idx + 1}</div>
-      <div class="stage-name">${tmpl.name}</div>
-      <div class="stage-rank">${isLocked ? '🔒 مغلقة' : `رتبة: ${bestRank} (${bestTimeStr})`}</div>
-    `;
+        function repayDebt() {
+            if (gameState.debt <= 0) {
+                showToast('ليس عليك أي ديون مستحقة للبنك حالياً!', 'info');
+                return;
+            }
 
-    if (!isLocked) {
-      card.addEventListener('click', () => {
-        audio.init();
-        document.getElementById('modal-stage-select').classList.add('hidden');
-        document.getElementById('modal-menu').classList.add('hidden');
-        document.getElementById('modal-pause').classList.add('hidden');
-        document.getElementById('modal-stage-clear').classList.add('hidden');
-        loadLevel(idx);
-        sys.running = true;
-        sys.paused = false;
-      });
-    }
+            if (gameState.cash < gameState.debt) {
+                const partial = gameState.cash;
+                if (partial <= 0) {
+                    showToast('لا تملك سيولة نقدية كافية لسداد أي جزء من الدين!', 'error');
+                    return;
+                }
+                gameState.debt -= partial;
+                gameState.cash = 0;
+                logTransaction(`سداد جزئي للقرض المصرفي`, -partial, 'repay');
+                showToast(`تم سداد جزء من الدين بقيمة $${partial.toLocaleString()}`, 'info');
+            } else {
+                const paid = gameState.debt;
+                gameState.cash -= paid;
+                gameState.debt = 0;
+                logTransaction(`سداد الدين المصرفي بالكامل`, -paid, 'repay');
+                playSound('buy');
+                showToast(`تهانينا! لقد سددت جميع ديونك المصرفية بالكامل!`, 'success');
+            }
 
-    container.appendChild(card);
-  });
-}
+            saveGame();
+            updateUI();
+        }
 
-function togglePause() {
-  if (!sys.running) return;
-  sys.paused = !sys.paused;
-  const modal = document.getElementById('modal-pause');
-  if (sys.paused) {
-    modal.classList.remove('hidden');
-  } else {
-    modal.classList.add('hidden');
-    lastTime = performance.now();
-  }
-}
+        function upgradeWarehouse() {
+            const cost = getWarehouseUpgradeCost();
+            if (gameState.cash < cost) {
+                playSound('alert');
+                showToast(`لا تملك رصيداً كافياً لتوسعة المستودع! المطلوب: $${cost.toLocaleString()}`, 'error');
+                return;
+            }
 
-// أزرار القائمة والتحكم
-document.getElementById('btn-start').addEventListener('click', startNewCampaign);
-document.getElementById('btn-open-stage-select').addEventListener('click', () => {
-  populateStageSelect();
-  document.getElementById('modal-stage-select').classList.remove('hidden');
-});
-document.getElementById('btn-close-stage-select').addEventListener('click', () => {
-  document.getElementById('modal-stage-select').classList.add('hidden');
-});
-document.getElementById('btn-pause-open').addEventListener('click', togglePause);
-document.getElementById('btn-resume').addEventListener('click', togglePause);
-document.getElementById('btn-restart-now').addEventListener('click', restartCurrentLevel);
-document.getElementById('btn-pause-stages').addEventListener('click', () => {
-  populateStageSelect();
-  document.getElementById('modal-stage-select').classList.remove('hidden');
-});
-document.getElementById('btn-exit-main').addEventListener('click', () => {
-  sys.running = false;
-  sys.paused = false;
-  audio.stopMusic();
-  document.getElementById('modal-pause').classList.add('hidden');
-  document.getElementById('modal-menu').classList.remove('hidden');
-});
+            gameState.cash -= cost;
+            gameState.warehouseCap += 25;
+            gameState.upgradeLevel += 1;
 
-// أزرار شاشة إنجاز المرحلة
-document.getElementById('btn-next-stage').addEventListener('click', () => {
-  document.getElementById('modal-stage-clear').classList.add('hidden');
-  loadLevel(sys.level + 1);
-  sys.running = true;
-  sys.paused = false;
-});
-document.getElementById('btn-replay-stage').addEventListener('click', () => {
-  document.getElementById('modal-stage-clear').classList.add('hidden');
-  restartCurrentLevel();
-});
-document.getElementById('btn-clear-to-stages').addEventListener('click', () => {
-  document.getElementById('modal-stage-clear').classList.add('hidden');
-  populateStageSelect();
-  document.getElementById('modal-stage-select').classList.remove('hidden');
-});
+            logTransaction(`توسعة المستودع (+25 وحدة)`, -cost, 'upgrade');
+            playSound('buy');
+            showToast(`تمت توسعة المستودع لتصبح سعته ${gameState.warehouseCap} وحدة!`, 'success');
+            saveGame();
+            updateUI();
+        }
 
-// نافذة الإعدادات
-const modalSettings = document.getElementById('modal-settings');
-document.getElementById('btn-open-settings').addEventListener('click', () => {
-  document.getElementById('cfg-lowfx').checked = CONFIG.lowFX;
-  document.getElementById('cfg-shake').checked = CONFIG.shake;
-  document.getElementById('cfg-ghost').checked = CONFIG.ghost;
-  document.getElementById('cfg-audio').checked = CONFIG.audio;
-  document.getElementById('cfg-haptic').checked = CONFIG.haptic;
-  document.getElementById('cfg-touch-alpha').value = Math.round(CONFIG.touchAlpha * 100);
-  modalSettings.classList.remove('hidden');
-});
+        function toggleAdvisor() {
+            if (gameState.hasAdvisor) {
+                gameState.hasAdvisor = false;
+                gameState.advisorHint = null;
+                showToast('تم إلغاء التعاقد مع المستشار المالي', 'info');
+            } else {
+                if (gameState.cash < 80) {
+                    showToast('لا تملك $80 لدفع مقدم أتعاب المستشار!', 'error');
+                    return;
+                }
+                gameState.cash -= 80;
+                gameState.hasAdvisor = true;
+                generateAdvisorHint();
+                logTransaction('توظيف المستشار المالي', -80, 'fee');
+                playSound('buy');
+                showToast('تم توظيف المستشار المالي بنجاح!', 'success');
+            }
+            saveGame();
+            updateUI();
+        }
 
-document.getElementById('btn-save-cfg').addEventListener('click', () => {
-  CONFIG.lowFX = document.getElementById('cfg-lowfx').checked;
-  CONFIG.shake = document.getElementById('cfg-shake').checked;
-  CONFIG.ghost = document.getElementById('cfg-ghost').checked;
-  CONFIG.audio = document.getElementById('cfg-audio').checked;
-  CONFIG.haptic = document.getElementById('cfg-haptic').checked;
-  CONFIG.touchAlpha = parseInt(document.getElementById('cfg-touch-alpha').value) / 100;
+        /* ================= Transactions Log ================= */
+        function logTransaction(desc, amount, type) {
+            gameState.transactions.unshift({
+                day: gameState.day,
+                desc: desc,
+                amount: amount,
+                type: type,
+                time: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })
+            });
+            if (gameState.transactions.length > 50) {
+                gameState.transactions.pop();
+            }
+        }
 
-  document.querySelectorAll('.touch-btn').forEach(btn => {
-    btn.style.opacity = CONFIG.touchAlpha;
-  });
+        function renderTransactionLog() {
+            const list = document.getElementById('transactions-log');
+            if (gameState.transactions.length === 0) {
+                list.innerHTML = `<div class="text-center py-8 text-slate-500 text-xs">لا توجد عمليات مسجلة حتى الآن.</div>`;
+                return;
+            }
 
-  if (!CONFIG.audio) audio.stopMusic();
-  else if (sys.running && !sys.paused) audio.startMusic();
+            list.innerHTML = gameState.transactions.map(item => {
+                const isPositive = item.amount > 0;
+                const sign = isPositive ? '+' : '';
+                const color = isPositive ? 'text-emerald-400' : (item.amount < 0 ? 'text-rose-400' : 'text-slate-400');
 
-  StorageManager.save(SAVE_STATE);
-  modalSettings.classList.add('hidden');
-});
+                return `
+                    <div class="flex items-center justify-between p-2.5 bg-slate-950 rounded-xl border border-slate-800 text-xs">
+                        <div class="flex items-center gap-2">
+                            <span class="text-slate-400 font-mono text-[10px] bg-slate-800 px-1.5 py-0.5 rounded">اليوم ${item.day}</span>
+                            <span class="text-slate-200 font-medium">${item.desc}</span>
+                        </div>
+                        <span class="font-bold ${color}" dir="ltr">${sign}$${Math.abs(item.amount).toLocaleString()}</span>
+                    </div>
+                `;
+            }).join('');
+        }
 
-// تشغيل حلقة المحرك
-requestAnimationFrame(engineLoop);
-</script>
+        function clearHistory() {
+            gameState.transactions = [];
+            saveGame();
+            renderTransactionLog();
+            showToast('تم تفريغ سجل العمليات', 'info');
+        }
+
+        /* ================= Reset Game Modal ================= */
+        function confirmResetGame() {
+            document.getElementById('confirm-modal').classList.remove('hidden');
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirm-modal').classList.add('hidden');
+        }
+
+        function doResetGame() {
+            localStorage.removeItem(STORAGE_KEY);
+            initGameState();
+            closeConfirmModal();
+            updateUI();
+            switchTab('market');
+            showToast('تمت إعادة ضبط اللعبة بنجاح. بالتوفيق في رحلتك التجارية الجديدة!', 'success');
+        }
+
+        /* ================= Settings & Audio ================= */
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const btn = document.getElementById('sound-toggle-btn');
+            if (soundEnabled) {
+                btn.textContent = 'مفعلة';
+                btn.className = 'px-3 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 text-xs font-bold border border-emerald-500/30';
+                showToast('تم تفعيل المؤثرات الصوتية', 'info');
+            } else {
+                btn.textContent = 'معطلة';
+                btn.className = 'px-3 py-1 rounded-lg bg-slate-800 text-slate-400 text-xs font-bold border border-slate-700';
+                showToast('تم كتم المؤثرات الصوتية', 'info');
+            }
+        }
+
+        /* ================= Tab Switching ================= */
+        function switchTab(tabId) {
+            ['market', 'bank', 'history', 'settings'].forEach(id => {
+                const section = document.getElementById('tab-' + id);
+                const btn = document.getElementById('tab-btn-' + id);
+                if (id === tabId) {
+                    section.classList.remove('hidden');
+                    btn.className = 'tab-btn px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 transition-all-custom';
+                } else {
+                    section.classList.add('hidden');
+                    btn.className = 'tab-btn px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 bg-slate-900 text-slate-400 hover:text-slate-200 border border-transparent transition-all-custom';
+                }
+            });
+        }
+
+        /* ================= Toast Notification System ================= */
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+
+            let bgClass = 'bg-slate-900 text-slate-100 border-slate-700';
+            let icon = '<i class="fa-solid fa-circle-info text-blue-400"></i>';
+
+            if (type === 'success') {
+                bgClass = 'bg-slate-900 text-emerald-300 border-emerald-500/40 glow-emerald';
+                icon = '<i class="fa-solid fa-circle-check text-emerald-400 text-base"></i>';
+            } else if (type === 'error') {
+                bgClass = 'bg-slate-900 text-rose-300 border-rose-500/40';
+                icon = '<i class="fa-solid fa-circle-exclamation text-rose-400 text-base"></i>';
+            } else if (type === 'warning') {
+                bgClass = 'bg-slate-900 text-amber-300 border-amber-500/40 glow-amber';
+                icon = '<i class="fa-solid fa-triangle-exclamation text-amber-400 text-base"></i>';
+            }
+
+            toast.className = `flex items-center gap-3 p-3.5 rounded-2xl border shadow-xl text-xs sm:text-sm font-semibold pointer-events-auto transform transition-all duration-300 opacity-0 translate-y-2 ${bgClass}`;
+            toast.innerHTML = `${icon} <span class="flex-1">${message}</span>`;
+
+            container.appendChild(toast);
+
+            // Animate in
+            requestAnimationFrame(() => {
+                toast.classList.remove('opacity-0', 'translate-y-2');
+                toast.classList.add('opacity-100', 'translate-y-0');
+            });
+
+            // Auto dismiss after 3.2 seconds
+            setTimeout(() => {
+                toast.classList.add('opacity-0', '-translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3200);
+        }
+
+        /* ================= On Window Load ================= */
+        window.onload = function () {
+            initGameState();
+            updateUI();
+        };
+    </script>
 </body>
 </html>
+```
