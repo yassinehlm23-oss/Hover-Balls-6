@@ -279,7 +279,7 @@
             storageUpgCost: 1500,
             cityIdx: 0,
             prestige: 0,
-            selectedTrade: null, // { cat: 'good'|'stock', id: 'wheat' }
+            selectedTrade: null,
             cities: [
                 { id: 'dxb', name: 'دبي', flag: '🇦🇪', cost: 0, mults: { wheat: 1.0, coffee: 1.0, cloth: 1.0, chips: 0.9, oil: 0.85, gold: 1.0, food: 1.1, phone: 0.9, plastic: 0.9 } },
                 { id: 'nyc', name: 'نيويورك', flag: '🇺🇸', cost: 500, mults: { wheat: 1.25, coffee: 1.35, cloth: 1.1, chips: 1.0, oil: 1.2, gold: 1.15, food: 1.3, phone: 1.1, plastic: 1.2 } },
@@ -293,7 +293,6 @@
                 { id: 'chips', name: 'رقائق سيليكون', icon: '💾', base: 380, price: 380, prev: 380, owned: 0 },
                 { id: 'oil', name: 'نفط خام', icon: '🛢️', base: 950, price: 950, prev: 950, owned: 0 },
                 { id: 'gold', name: 'سبائك ذهبية', icon: '🪙', base: 2800, price: 2800, prev: 2800, owned: 0 },
-                // منتجات مصنعة
                 { id: 'food', name: 'أغذية معلبة وفاخرة', icon: '🥫', base: 90, price: 90, prev: 90, owned: 0, manufactured: true },
                 { id: 'plastic', name: 'لدائن وبوليمرات', icon: '🧪', base: 2200, price: 2200, prev: 2200, owned: 0, manufactured: true },
                 { id: 'phone', name: 'هواتف ذكية فائقة', icon: '📱', base: 1100, price: 1100, prev: 1100, owned: 0, manufactured: true },
@@ -412,7 +411,7 @@
         function renderGoods() {
             const list = document.getElementById('goods-list');
             list.innerHTML = '';
-            state.goods.forEach((g, idx) => {
+            state.goods.forEach((g) => {
                 const diff = g.price - g.prev;
                 const isUp = diff >= 0;
                 const pct = g.prev ? Math.abs(((diff / g.prev) * 100).toFixed(1)) : 0;
@@ -497,7 +496,6 @@
 
             if (req.owned < fac.reqQty) return alert(`ليس لديك ما يكفي من ${req.name} للتصنيع!`);
             
-            // تحقق من سعة المستودع
             const spaceNet = fac.outQty - fac.reqQty;
             if (spaceNet > 0 && (getStorageUsed() + spaceNet > state.storageCap)) {
                 return alert("لا توجد مساحة كافية في المستودع لاستيعاب المنتج المصنع!");
@@ -545,7 +543,6 @@
             state.cash += c.reward;
             state.prestige += c.prestige;
             
-            // استبدال العقد بعقد جديد بمكافآت أعلى
             c.daysLeft = Math.floor(Math.random() * 8) + 6;
             c.targetQty = Math.round(c.targetQty * 1.3);
             c.reward = Math.round(c.reward * 1.35);
@@ -587,9 +584,8 @@
             });
         }
 
-        // عرض الإمبراطورية (الأصول والوجاهة والسفر)
+        // عرض الإمبراطورية
         function renderEmpire() {
-            // الشركات والدخل السلبي
             const bList = document.getElementById('biz-list');
             bList.innerHTML = '';
             state.businesses.forEach((b) => {
@@ -611,7 +607,6 @@
                 bList.appendChild(card);
             });
 
-            // أسطول الوجاهة
             const lList = document.getElementById('luxury-list');
             lList.innerHTML = '';
             state.luxuries.forEach((l) => {
@@ -635,7 +630,6 @@
                 lList.appendChild(card);
             });
 
-            // السفر
             const tList = document.getElementById('travel-list');
             tList.innerHTML = '';
             state.cities.forEach((c, idx) => {
@@ -655,12 +649,11 @@
             });
         }
 
-        // عرض قائمة فوربس والمنافسين
+        // عرض قائمة فوربس
         function renderLeaderboard(playerWorth) {
             const list = document.getElementById('leaderboard-list');
             list.innerHTML = '';
 
-            // تحديث ثروة اللاعب والمنافسين ديناميكياً
             const playerRival = state.rivals.find(r => r.isPlayer);
             playerRival.worth = playerWorth;
 
@@ -727,7 +720,6 @@
         }
 
         function takeLoan() {
-            // سقف القرض يرتفع حسب الوجاهة
             const loanLimit = 15000 + (state.prestige * 200);
             if (state.debt + 5000 > loanLimit) return alert(`وصلت للحد الأقصى للاقتراض المتاح لك من البنك (${loanLimit.toLocaleString()}$)`);
             state.cash += 5000;
@@ -837,14 +829,14 @@
             renderAll();
         }
 
-        // إعادة ضبط أسعار الأسواق
+        // ضبط الأسعار
         function recalcMarket(eventFactor = 1, eventTarget = null) {
             const city = state.cities[state.cityIdx];
 
             state.goods.forEach(g => {
                 g.prev = g.price;
                 const cityMul = city.mults[g.id] || 1.0;
-                const rand = 1 + ((Math.random() * 0.3) - 0.15); // +-15%
+                const rand = 1 + ((Math.random() * 0.3) - 0.15);
                 let newP = Math.round(g.base * cityMul * rand);
                 if (eventTarget === g.id) newP = Math.round(newP * eventFactor);
                 g.price = Math.max(5, newP);
@@ -857,20 +849,17 @@
             });
         }
 
-        // إنهاء اليوم والمحاسبة والتقدم
+        // إنهاء اليوم والمحاسبة
         function advanceDay() {
             state.day += 1;
 
-            // 1. الدخل السلبي
             const passive = getPassiveIncome();
             state.cash += passive;
 
-            // 2. فائدة الدين (2% يومياً)
             if (state.debt > 0) {
                 state.debt = Math.round(state.debt * 1.02);
             }
 
-            // 3. تحديث أيام العقود
             state.contracts.forEach(c => {
                 c.daysLeft -= 1;
                 if (c.daysLeft <= 0) {
@@ -879,7 +868,6 @@
                 }
             });
 
-            // 4. نمو ثروة المنافسين بنسب واقعية
             state.rivals.forEach(r => {
                 if (!r.isPlayer) {
                     const growth = 1 + ((Math.random() * 0.08) - 0.02);
@@ -887,7 +875,6 @@
                 }
             });
 
-            // 5. الأخبار والأحداث
             const newsDB = [
                 { text: "أزمة عالمية في الشحن البحري ترفع أسعار الأغذية المعلبة والقمح!", target: "wheat", factor: 1.6 },
                 { text: "اكتشافات بترولية ضخمة تؤدي لهبوط مفاجئ في أسعار براميل النفط الخام.", target: "oil", factor: 0.65 },
@@ -900,8 +887,8 @@
 
             recalcMarket(ev.factor, ev.target);
 
-            // 6. احتمال وقوع قرارات تفاعلية مصيرية (Dilemma) كل 5 أيام
-            if (Math.random() < 0.25) {
+            // حدث طارئ نادر جداً (نسبة 4% فقط - مرة كل 25 إلى 30 يوماً تقريباً)
+            if (Math.random() < 0.04) {
                 triggerRandomDilemma();
             } else {
                 beep(500, 'sine', 0.2);
@@ -910,40 +897,68 @@
             renderAll();
         }
 
-        // نظام الأحداث والقرارات المصيرية
+        // نظام الأحداث النادرة والمتنوعة
         function triggerRandomDilemma() {
             const dilemmas = [
                 {
                     icon: '🕵️‍♂️',
-                    title: 'تفتيش ضريبي مفاجئ',
-                    desc: 'وصل مدققون من هيئة الضرائب لفحص دفاتر شركتك. يمكنك دفع تسوية سريعة أو تعيين محامٍ كبير.',
+                    title: 'تفتيش ضريبي روتيني',
+                    desc: 'طلب مدققو الضرائب مراجعة فواتير شركتك.',
                     actions: [
-                        { text: 'دفع تسوية ودية فورية (1,200$)', cb: () => {
-                            if (state.cash >= 1200) { state.cash -= 1200; alert('تمت التسوية بهدوء.'); }
-                            else { state.debt += 1500; alert('أضيفت كغرامة مع الديون.'); }
+                        { text: 'تسوية رسمية (800$)', cb: () => {
+                            if (state.cash >= 800) { state.cash -= 800; alert('تم دفع الرسوم وإنهاء الملف.'); }
+                            else { state.debt += 1000; alert('تمت إضافتها لديونك البنكية.'); }
                         }},
-                        { text: 'الاعتماد على سمعتك التجارية وقوة علاقاتك', cb: () => {
-                            if (state.prestige > 50) { alert('ساعدتك سمعتك العالية في تفادي أي غرامات!'); }
-                            else { state.cash = Math.max(0, state.cash - 2500); alert('فشلت المحاولة وفرضت عليك غرامة مضاعفة!'); }
+                        { text: 'الاعتماد على مكانتك التجارية', cb: () => {
+                            if (state.prestige >= 30) { alert('مكانتك التجارية العالية حسمت الأمر دون أي تكاليف!'); }
+                            else { state.cash = Math.max(0, state.cash - 1500); alert('فشلت الوساطة وتم تغريمك 1,500$!'); }
                         }}
                     ]
                 },
                 {
                     icon: '💡',
-                    title: 'عرض استثمار سري وحصري',
-                    desc: 'عرض عليك وسيط شحنة بضائع مجهولة المصدر بسعر زهيد جداً (2,000$). هل تخوض المخاطرة؟',
+                    title: 'صفقة حاوية مهجورة في الميناء',
+                    desc: 'طرح الميناء حاوية تجارية لم يستلمها صاحبها بسعر مزاد رمزي (1,500$).',
                     actions: [
-                        { text: 'المجازفة ودفع 2,000$', cb: () => {
-                            if (state.cash < 2000) return alert('لا تملك المال الكافي.');
-                            state.cash -= 2000;
-                            if (Math.random() > 0.4) {
+                        { text: 'المزايدة وشراء الحاوية (1,500$)', cb: () => {
+                            if (state.cash < 1500) return alert('لا تملك سيولة كافية للمزاد.');
+                            state.cash -= 1500;
+                            if (Math.random() > 0.35) {
                                 state.goods.find(g => g.id === 'gold').owned += 2;
-                                alert('نجحت المخاطرة! تبين أن الشحنة تحتوي على سبيكتي ذهب ثمينتين!');
+                                alert('ضربة حظ رائعة! عثرت داخل الحاوية على سبيكتي ذهب!');
                             } else {
-                                alert('للأسف الشحنة كانت بضائع تالفة بالكامل وخسرت أموالك.');
+                                alert('كانت الحاوية تحتوي على بضائع تالفة بالكامل.');
                             }
                         }},
-                        { text: 'رفض العرض والالتزام بالشفافية', cb: () => { alert('تجنبت المخاطرة وحافظت على أمان استثماراتك.'); }}
+                        { text: 'صرف النظر وتجنب المجازفة', cb: () => { alert('تجنبت المخاطرة بأموالك.'); }}
+                    ]
+                },
+                {
+                    icon: '🤝',
+                    title: 'فرصة رعاية مؤتمر أعمال دولي',
+                    desc: 'عُرض عليك رعاية منتدى استثماري لتعزيز علامتك التجارية مقابل 2,000$.',
+                    actions: [
+                        { text: 'الموافقة على الرعاية (2,000$)', cb: () => {
+                            if (state.cash < 2000) return alert('لا تملك المبلغ المطلوب.');
+                            state.cash -= 2000;
+                            state.prestige += 15;
+                            alert('ارتفعت سمعتك ووجاهتك في السوق بمقدار +15 نقطة!');
+                        }},
+                        { text: 'رفض العرض حالياً', cb: () => { alert('تم توفير السيولة لصفقات البضائع.'); }}
+                    ]
+                },
+                {
+                    icon: '⚡',
+                    title: 'عرض بيع مستودع مستعجل',
+                    desc: 'تاجر يمر بضائقة مالية يعرض عليك شراء مساحته التخزينية بنصف السعر.',
+                    actions: [
+                        { text: 'شراء التوسعة فوراً (800$)', cb: () => {
+                            if (state.cash < 800) return alert('السيولة غير كافية.');
+                            state.cash -= 800;
+                            state.storageCap += 50;
+                            alert('مبروك! زادت سعة مستودعك بـ 50 وحدة بسعر مغرٍ.');
+                        }},
+                        { text: 'تجاهل العرض', cb: () => {} }
                     ]
                 }
             ];
@@ -984,7 +999,7 @@
             beep(420, 'sine', 0.05);
         }
 
-        // الإقلاع الأولي للعبة
+        // بدء التشغيل
         loadGame();
         recalcMarket();
         renderAll();
