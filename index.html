@@ -7,11 +7,15 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- مكتبة الألعاب النارية الاحتفالية الخفيفة -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
         body { font-family: 'Cairo', sans-serif; user-select: none; -webkit-user-select: none; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .badge-glow { box-shadow: 0 0 10px rgba(16, 185, 129, 0.3); }
+        .badge-glow { box-shadow: 0 0 12px rgba(16, 185, 129, 0.35); }
+        .black-market-glow { box-shadow: 0 0 15px rgba(225, 29, 72, 0.4); }
+        .wheel-spin { transition: transform 3s cubic-bezier(0.15, 0.9, 0.25, 1); }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500">
@@ -35,128 +39,161 @@
             </div>
         </div>
 
-        <!-- المستودع والتدفق اليومي -->
+        <!-- المستودع والوجاهة وزر عجلة الحظ السريع -->
         <div class="max-w-4xl mx-auto mt-1.5 pt-1.5 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
-            <div class="flex items-center gap-1.5 text-purple-300 font-bold">
-                <span id="rank-txt">تاجر مبتدئ 📦</span>
+            <div class="flex items-center gap-1.5 font-bold">
+                <span id="rank-txt" class="text-purple-300">تاجر مبتدئ 📦</span>
                 <span class="text-[9px] bg-purple-950 border border-purple-800 px-1.5 py-0.2 rounded text-purple-200" id="prestige-txt">وجاهة: 0</span>
             </div>
             <div class="flex items-center gap-2">
+                <button onclick="openSpinModal()" class="bg-gradient-to-r from-amber-500 to-yellow-600 text-slate-950 font-black px-2 py-0.5 rounded-lg text-[10px] flex items-center gap-1 active:scale-95 shadow-sm animate-pulse">
+                    <i class="fa-solid fa-dharmachakra"></i> عجلة الحظ
+                </button>
                 <span class="text-slate-400">المخزن: <strong id="storage-txt" class="text-white">0/60</strong></span>
-                <div class="w-14 bg-slate-800 h-1.5 rounded-full overflow-hidden border border-slate-700">
+                <div class="w-12 bg-slate-800 h-1.5 rounded-full overflow-hidden border border-slate-700">
                     <div id="storage-bar" class="bg-emerald-500 h-full w-0 transition-all"></div>
                 </div>
             </div>
         </div>
     </header>
 
-    <!-- شريط الأخبار والأسواق -->
+    <!-- شريط الأخبار مع عداد السوق السري -->
     <div class="max-w-4xl mx-auto w-full px-3 mt-2">
-        <div class="bg-slate-900 border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center gap-2">
-            <span class="bg-rose-500/20 text-rose-400 text-[10px] font-black px-2 py-0.5 rounded flex items-center gap-1 shrink-0">
-                <i class="fa-solid fa-bullhorn"></i> رادار السوق
+        <div class="bg-slate-900 border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2 overflow-hidden">
+                <span class="bg-rose-500/20 text-rose-400 text-[10px] font-black px-2 py-0.5 rounded flex items-center gap-1 shrink-0">
+                    <i class="fa-solid fa-bullhorn"></i> رادار
+                </span>
+                <p id="news-bar" class="text-xs text-slate-300 truncate">افتتاح الأسواق مع استقرار عام في التداولات.</p>
+            </div>
+            <span id="bm-status-pill" class="text-[9px] px-2 py-0.5 rounded-md font-bold shrink-0 bg-slate-800 text-slate-500 border border-slate-700">
+                السوق السري: مغلق
             </span>
-            <p id="news-bar" class="text-xs text-slate-300 truncate">افتتاح حركة التداول مع استقرار عام في سلاسل الإمداد العالمية.</p>
         </div>
     </div>
 
-    <!-- قائمة التبويبات التنقلية -->
+    <!-- قائمة التبويبات الرئيسية -->
     <nav class="max-w-4xl mx-auto w-full px-3 mt-2.5">
         <div class="flex items-center gap-1 bg-slate-900/90 border border-slate-800 p-1 rounded-2xl overflow-x-auto no-scrollbar text-[11px] font-bold">
-            <button onclick="tab('market')" id="tbtn-market" class="tbtn flex-1 min-w-[65px] py-2 rounded-xl text-center bg-emerald-600 text-white">
+            <button onclick="tab('market')" id="tbtn-market" class="tbtn flex-1 min-w-[60px] py-2 rounded-xl text-center bg-emerald-600 text-white">
                 <i class="fa-solid fa-store block text-xs mb-0.5"></i> التجارة
             </button>
-            <button onclick="tab('factory')" id="tbtn-factory" class="tbtn flex-1 min-w-[65px] py-2 rounded-xl text-center text-slate-400">
+            <button onclick="tab('blackmarket')" id="tbtn-blackmarket" class="tbtn flex-1 min-w-[60px] py-2 rounded-xl text-center text-rose-400">
+                <i class="fa-solid fa-mask block text-xs mb-0.5"></i> السري 🔥
+            </button>
+            <button onclick="tab('factory')" id="tbtn-factory" class="tbtn flex-1 min-w-[60px] py-2 rounded-xl text-center text-slate-400">
                 <i class="fa-solid fa-industry block text-xs mb-0.5"></i> المصانع
             </button>
-            <button onclick="tab('contracts')" id="tbtn-contracts" class="tbtn flex-1 min-w-[65px] py-2 rounded-xl text-center text-slate-400">
+            <button onclick="tab('contracts')" id="tbtn-contracts" class="tbtn flex-1 min-w-[60px] py-2 rounded-xl text-center text-slate-400">
                 <i class="fa-solid fa-file-signature block text-xs mb-0.5"></i> العقود
             </button>
-            <button onclick="tab('stocks')" id="tbtn-stocks" class="tbtn flex-1 min-w-[65px] py-2 rounded-xl text-center text-slate-400">
+            <button onclick="tab('stocks')" id="tbtn-stocks" class="tbtn flex-1 min-w-[60px] py-2 rounded-xl text-center text-slate-400">
                 <i class="fa-solid fa-chart-line block text-xs mb-0.5"></i> الأسهم
             </button>
-            <button onclick="tab('empire')" id="tbtn-empire" class="tbtn flex-1 min-w-[65px] py-2 rounded-xl text-center text-slate-400">
-                <i class="fa-solid fa-building-flag block text-xs mb-0.5"></i> الإمبراطورية
+            <button onclick="tab('achieve')" id="tbtn-achieve" class="tbtn flex-1 min-w-[60px] py-2 rounded-xl text-center text-amber-400">
+                <i class="fa-solid fa-medal block text-xs mb-0.5"></i> إنجازات
             </button>
-            <button onclick="tab('rivals')" id="tbtn-rivals" class="tbtn flex-1 min-w-[65px] py-2 rounded-xl text-center text-slate-400">
+            <button onclick="tab('empire')" id="tbtn-empire" class="tbtn flex-1 min-w-[60px] py-2 rounded-xl text-center text-slate-400">
+                <i class="fa-solid fa-building-flag block text-xs mb-0.5"></i> الأصول
+            </button>
+            <button onclick="tab('rivals')" id="tbtn-rivals" class="tbtn flex-1 min-w-[60px] py-2 rounded-xl text-center text-slate-400">
                 <i class="fa-solid fa-trophy block text-xs mb-0.5"></i> الأثرياء
             </button>
         </div>
     </nav>
 
-    <!-- شاشات التبويب المختلفة -->
+    <!-- مساحة المحتوى -->
     <main class="max-w-4xl mx-auto w-full px-3 mt-2.5 flex-1 pb-20">
 
-        <!-- تبويب 1: التجارة والسلع -->
+        <!-- تبويب 1: التجارة العادية مع شارت الأسعار التاريخية -->
         <div id="tc-market" class="tcontent space-y-2.5">
             <div class="flex items-center justify-between text-xs px-1">
-                <span class="text-slate-400 font-bold">السلع المعروضة للتداول المحلي</span>
+                <span class="text-slate-400 font-bold">بضائع التداول المحلي (مع اتجاه السعر)</span>
                 <span class="text-sky-400 font-bold" id="location-name">سوق دبي المالي</span>
             </div>
             <div id="goods-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2"></div>
         </div>
 
-        <!-- تبويب 2: التصنيع والإنتاج -->
+        <!-- تبويب 2: السوق الأسود السري (Black Market) -->
+        <div id="tc-blackmarket" class="tcontent hidden space-y-2.5">
+            <div class="bg-rose-950/30 border border-rose-900/60 p-3.5 rounded-2xl black-market-glow">
+                <div class="flex items-center justify-between mb-1">
+                    <h4 class="font-black text-sm text-rose-400 flex items-center gap-2">
+                        <i class="fa-solid fa-user-secret"></i> السوق السوداء والصفقات المشبوهة
+                    </h4>
+                    <span id="bm-timer" class="text-[10px] bg-rose-900/50 text-rose-300 px-2 py-0.5 rounded font-bold">مفتوح</span>
+                </div>
+                <p class="text-[11px] text-slate-300">أرباح قياسية وسلع نادرة جداً، لكن احذر: قد تصادر الشرطة البضاعة إن لم تكن تملك حراسة أو وجاهة كافية!</p>
+            </div>
+            <div id="blackmarket-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5"></div>
+        </div>
+
+        <!-- تبويب 3: التصنيع -->
         <div id="tc-factory" class="tcontent hidden space-y-2.5">
             <div class="bg-slate-900 border border-slate-800 p-3 rounded-2xl">
                 <h4 class="font-bold text-xs text-white mb-1"><i class="fa-solid fa-gears text-amber-400"></i> خطوط التصنيع والتحويل</h4>
-                <p class="text-[10px] text-slate-400">استغل المواد الخام في مخزنك لإنتاج بضائع فاخرة بهوامش ربحية تفوق 150%.</p>
+                <p class="text-[10px] text-slate-400">استغل المواد الخام لإنتاج بضائع فاخرة بهوامش ربحية تفوق 150%.</p>
             </div>
             <div id="factories-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5"></div>
         </div>
 
-        <!-- تبويب 3: العقود والصفقات الحكومية -->
+        <!-- تبويب 4: العقود -->
         <div id="tc-contracts" class="tcontent hidden space-y-2.5">
             <div class="bg-slate-900 border border-slate-800 p-3 rounded-2xl">
-                <h4 class="font-bold text-xs text-white mb-1"><i class="fa-solid fa-handshake text-emerald-400"></i> المناقصات والطلبيات المفتوحة</h4>
-                <p class="text-[10px] text-slate-400">وفّر كميات البضائع المطلوبة قبل انتهاء المهلة المحددة لحصد مكافآت ونقاط سمعة هائلة.</p>
+                <h4 class="font-bold text-xs text-white mb-1"><i class="fa-solid fa-handshake text-emerald-400"></i> العقود والمناقصات</h4>
+                <p class="text-[10px] text-slate-400">سلّم البضائع المطلوبة قبل انتهاء الأيام لكسب مكافآت ضخمة.</p>
             </div>
             <div id="contracts-list" class="space-y-2"></div>
         </div>
 
-        <!-- تبويب 4: بورصة الأسهم والعملات المشفرة -->
+        <!-- تبويب 5: الأسهم -->
         <div id="tc-stocks" class="tcontent hidden space-y-2.5">
-            <div class="bg-slate-900 border border-slate-800 p-3 rounded-2xl flex items-center justify-between">
-                <div>
-                    <h4 class="font-bold text-xs text-white"><i class="fa-solid fa-chart-pie text-sky-400"></i> البورصة والمضاربة المالية</h4>
-                    <p class="text-[10px] text-slate-400">شراء وبيع الحصص لا يستهلك من مساحة المستودع.</p>
-                </div>
+            <div class="bg-slate-900 border border-slate-800 p-3 rounded-2xl">
+                <h4 class="font-bold text-xs text-white"><i class="fa-solid fa-chart-pie text-sky-400"></i> البورصة والعملات المشفرة</h4>
+                <p class="text-[10px] text-slate-400">لا تستهلك مساحة تخزين في المستودع.</p>
             </div>
             <div id="stocks-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
         </div>
 
-        <!-- تبويب 5: الإمبراطورية (الأصول، السفر، البنك، الوجاهة) -->
+        <!-- تبويب 6: الإنجازات والجوائز الماسية -->
+        <div id="tc-achieve" class="tcontent hidden space-y-2.5">
+            <div class="bg-slate-900 border border-slate-800 p-3 rounded-2xl flex items-center justify-between">
+                <div>
+                    <h4 class="font-bold text-xs text-white"><i class="fa-solid fa-trophy text-amber-400"></i> مسار الإنجازات والمكافآت</h4>
+                    <p class="text-[10px] text-slate-400">أكمل التحديات واستلم جوائز مالية فورية تدعم نموك.</p>
+                </div>
+            </div>
+            <div id="achievements-list" class="space-y-2"></div>
+        </div>
+
+        <!-- تبويب 7: الإمبراطورية والأصول والبنك -->
         <div id="tc-empire" class="tcontent hidden space-y-3">
-            <!-- الدخل السلبي والعقارات -->
             <div class="bg-slate-900 border border-slate-800 p-3 rounded-2xl">
-                <h4 class="font-bold text-xs text-white mb-2"><i class="fa-solid fa-city text-purple-400"></i> الأصول ومصادر الدخل المستقل</h4>
+                <h4 class="font-bold text-xs text-white mb-2"><i class="fa-solid fa-city text-purple-400"></i> الأصول والدخل اليومي</h4>
                 <div id="biz-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
             </div>
 
-            <!-- أسطول الوجاهة والرفاهية -->
             <div class="bg-slate-900 border border-slate-800 p-3 rounded-2xl">
-                <h4 class="font-bold text-xs text-white mb-2"><i class="fa-solid fa-crown text-amber-400"></i> ممتلكات الوجاهة والسمعة</h4>
+                <h4 class="font-bold text-xs text-white mb-2"><i class="fa-solid fa-crown text-amber-400"></i> الوجاهة والسمعة</h4>
                 <div id="luxury-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
             </div>
 
-            <!-- السفر بين الموانئ -->
             <div class="bg-slate-900 border border-slate-800 p-3 rounded-2xl">
-                <h4 class="font-bold text-xs text-white mb-2"><i class="fa-solid fa-plane-up text-sky-400"></i> رحلات السفر والتجارة الخارجية</h4>
+                <h4 class="font-bold text-xs text-white mb-2"><i class="fa-solid fa-plane-up text-sky-400"></i> السفر بين المدن</h4>
                 <div id="travel-list" class="grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
             </div>
 
-            <!-- البنك والخدمات والتوسعة -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div class="bg-slate-900 border border-slate-800 p-3 rounded-2xl flex items-center justify-between">
                     <div>
-                        <h5 class="text-xs font-bold text-white"><i class="fa-solid fa-warehouse text-sky-400"></i> سعة المستودع</h5>
-                        <span class="text-[10px] text-slate-400" id="upg-cap-txt">+100 مساحة (1,500$)</span>
+                        <h5 class="text-xs font-bold text-white"><i class="fa-solid fa-warehouse text-sky-400"></i> توسيع المستودع</h5>
+                        <span class="text-[10px] text-slate-400" id="upg-cap-txt">+100 مساحة</span>
                     </div>
-                    <button onclick="upgradeStorage()" class="bg-slate-800 border border-sky-500/30 text-sky-400 text-xs font-bold px-3 py-1.5 rounded-xl">توسيع</button>
+                    <button onclick="upgradeStorage()" class="bg-slate-800 border border-sky-500/30 text-sky-400 text-xs font-bold px-3 py-1.5 rounded-xl">ترقية</button>
                 </div>
                 <div class="bg-slate-900 border border-slate-800 p-3 rounded-2xl flex items-center justify-between">
                     <div>
-                        <h5 class="text-xs font-bold text-white"><i class="fa-solid fa-sack-dollar text-rose-400"></i> الديون البنكية</h5>
+                        <h5 class="text-xs font-bold text-white"><i class="fa-solid fa-sack-dollar text-rose-400"></i> البنك والديون</h5>
                         <span class="text-[10px] text-rose-400 font-bold" id="bank-debt-label">0 $</span>
                     </div>
                     <div class="flex gap-1">
@@ -167,15 +204,15 @@
             </div>
             
             <div class="text-center pt-2">
-                <button onclick="resetGame()" class="text-slate-600 hover:text-rose-500 text-[11px] font-bold underline">إعادة بدء اللعبة من الصفر (Reset)</button>
+                <button onclick="resetGame()" class="text-slate-600 hover:text-rose-500 text-[11px] font-bold underline">إعادة ضبط اللعبة (Reset)</button>
             </div>
         </div>
 
-        <!-- تبويب 6: قائمة المليارديرات المنافسين -->
+        <!-- تبويب 8: قائمة فوربس -->
         <div id="tc-rivals" class="tcontent hidden space-y-2.5">
             <div class="bg-slate-900 border border-slate-800 p-3 rounded-2xl">
-                <h4 class="font-bold text-xs text-white mb-1"><i class="fa-solid fa-list-ol text-amber-400"></i> تصنيف فوربس لرجال الأعمال</h4>
-                <p class="text-[10px] text-slate-400">ضاعف ثروتك ووسع أعمالك لتزيح كبار الحيتان عن عرش التجارة.</p>
+                <h4 class="font-bold text-xs text-white mb-1"><i class="fa-solid fa-list-ol text-amber-400"></i> قائمة فوربس لأغنى 5 رجال أعمال</h4>
+                <p class="text-[10px] text-slate-400">هل تستطيع الوصول إلى المركز الأول وتصبح الأغنى في العالم؟</p>
             </div>
             <div id="leaderboard-list" class="space-y-1.5"></div>
         </div>
@@ -185,13 +222,38 @@
     <footer class="fixed bottom-0 left-0 right-0 bg-slate-900/95 border-t border-slate-800 p-2.5 z-40 backdrop-blur-md">
         <div class="max-w-4xl mx-auto flex items-center gap-2">
             <button onclick="advanceDay()" class="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600 active:scale-95 text-white font-bold py-2.5 rounded-xl shadow-lg shadow-emerald-500/20 text-xs md:text-sm flex items-center justify-center gap-2 transition-all">
-                <span>إنهاء اليوم الحالي والمحاسبة اليومية</span>
+                <span>إنهاء اليوم والتقدم لليوم التالي</span>
                 <i class="fa-solid fa-chevron-left text-[11px]"></i>
             </button>
         </div>
     </footer>
 
-    <!-- نافذة منبثقة للشراء والبيع (Modal) -->
+    <!-- نافذة عجلة الحظ (Lucky Wheel Modal) -->
+    <div id="spin-modal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-amber-500/50 w-full max-w-xs rounded-3xl p-5 shadow-2xl text-center relative">
+            <button onclick="closeSpinModal()" class="absolute top-3 left-3 text-slate-400 hover:text-white p-1">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <span class="text-3xl block mb-1">🎡</span>
+            <h3 class="text-base font-black text-amber-400 mb-1">عجلة الحظ التجارية</h3>
+            <p class="text-[10px] text-slate-400 mb-4" id="spin-status-txt">يمكنك تدوير العجلة مجاناً كل 3 أيام!</p>
+
+            <div class="relative w-44 h-44 mx-auto mb-4 flex items-center justify-center">
+                <!-- مؤشر السهم -->
+                <div class="absolute -top-2 z-20 text-amber-400 text-xl font-black drop-shadow">▼</div>
+                <!-- قرص العجلة -->
+                <div id="wheel-disc" class="w-full h-full rounded-full border-4 border-amber-400/80 bg-gradient-to-tr from-amber-600 via-purple-700 to-emerald-600 flex items-center justify-center shadow-inner wheel-spin">
+                    <span class="text-2xl font-black text-white drop-shadow">🎁</span>
+                </div>
+            </div>
+
+            <button id="spin-btn" onclick="spinWheel()" class="w-full bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black py-2.5 rounded-xl text-xs active:scale-95 shadow-lg shadow-amber-500/20">
+                تدوير العجلة الآن!
+            </button>
+        </div>
+    </div>
+
+    <!-- نافذة الشراء والبيع -->
     <div id="trade-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-slate-800 w-full max-w-xs rounded-3xl p-4 shadow-2xl relative">
             <button onclick="closeModal()" class="absolute top-3 left-3 text-slate-400 hover:text-white p-1">
@@ -241,7 +303,7 @@
         </div>
     </div>
 
-    <!-- نافذة أحداث الأزمات والفرص (Dilemmas Modal) -->
+    <!-- نافذة أحداث الأزمات النادرة -->
     <div id="event-modal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-amber-500/40 w-full max-w-sm rounded-3xl p-5 shadow-2xl text-center">
             <span class="text-4xl block mb-2" id="ev-icon">⚖️</span>
@@ -251,9 +313,8 @@
         </div>
     </div>
 
-    <!-- المحرك البرمجي المتكامل -->
+    <!-- كود اللعبة بالكامل -->
     <script>
-        // الأصوات الاصطناعية المدمجة
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         function beep(f, t = 'sine', d = 0.1) {
             try {
@@ -270,7 +331,6 @@
             } catch(e) {}
         }
 
-        // قاعدة بيانات وحالة اللعبة
         const defaultState = {
             day: 1,
             cash: 2500,
@@ -279,6 +339,8 @@
             storageUpgCost: 1500,
             cityIdx: 0,
             prestige: 0,
+            lastSpinDay: -3,
+            blackMarketOpen: false,
             selectedTrade: null,
             cities: [
                 { id: 'dxb', name: 'دبي', flag: '🇦🇪', cost: 0, mults: { wheat: 1.0, coffee: 1.0, cloth: 1.0, chips: 0.9, oil: 0.85, gold: 1.0, food: 1.1, phone: 0.9, plastic: 0.9 } },
@@ -287,15 +349,20 @@
                 { id: 'lon', name: 'لندن', flag: '🇬🇧', cost: 450, mults: { wheat: 1.15, coffee: 1.1, cloth: 1.2, chips: 1.1, oil: 1.1, gold: 0.95, food: 1.2, phone: 1.15, plastic: 1.05 } }
             ],
             goods: [
-                { id: 'wheat', name: 'قمح عضوي', icon: '🌾', base: 25, price: 25, prev: 25, owned: 0 },
-                { id: 'coffee', name: 'بن مجفف', icon: '☕', base: 70, price: 70, prev: 70, owned: 0 },
-                { id: 'cloth', name: 'حرير وأقمشة', icon: '🧵', base: 140, price: 140, prev: 140, owned: 0 },
-                { id: 'chips', name: 'رقائق سيليكون', icon: '💾', base: 380, price: 380, prev: 380, owned: 0 },
-                { id: 'oil', name: 'نفط خام', icon: '🛢️', base: 950, price: 950, prev: 950, owned: 0 },
-                { id: 'gold', name: 'سبائك ذهبية', icon: '🪙', base: 2800, price: 2800, prev: 2800, owned: 0 },
-                { id: 'food', name: 'أغذية معلبة وفاخرة', icon: '🥫', base: 90, price: 90, prev: 90, owned: 0, manufactured: true },
-                { id: 'plastic', name: 'لدائن وبوليمرات', icon: '🧪', base: 2200, price: 2200, prev: 2200, owned: 0, manufactured: true },
-                { id: 'phone', name: 'هواتف ذكية فائقة', icon: '📱', base: 1100, price: 1100, prev: 1100, owned: 0, manufactured: true },
+                { id: 'wheat', name: 'قمح عضوي', icon: '🌾', base: 25, price: 25, prev: 25, history: [25, 25, 25], owned: 0 },
+                { id: 'coffee', name: 'بن مجفف', icon: '☕', base: 70, price: 70, prev: 70, history: [70, 70, 70], owned: 0 },
+                { id: 'cloth', name: 'حرير وأقمشة', icon: '🧵', base: 140, price: 140, prev: 140, history: [140, 140, 140], owned: 0 },
+                { id: 'chips', name: 'رقائق سيليكون', icon: '💾', base: 380, price: 380, prev: 380, history: [380, 380, 380], owned: 0 },
+                { id: 'oil', name: 'نفط خام', icon: '🛢️', base: 950, price: 950, prev: 950, history: [950, 950, 950], owned: 0 },
+                { id: 'gold', name: 'سبائك ذهبية', icon: '🪙', base: 2800, price: 2800, prev: 2800, history: [2800, 2800, 2800], owned: 0 },
+                { id: 'food', name: 'أغذية معلبة', icon: '🥫', base: 90, price: 90, prev: 90, history: [90, 90, 90], owned: 0, manufactured: true },
+                { id: 'plastic', name: 'لدائن وبوليمرات', icon: '🧪', base: 2200, price: 2200, prev: 2200, history: [2200, 2200, 2200], owned: 0, manufactured: true },
+                { id: 'phone', name: 'هواتف ذكية', icon: '📱', base: 1100, price: 1100, prev: 1100, history: [1100, 1100, 1100], owned: 0, manufactured: true },
+            ],
+            blackMarketGoods: [
+                { id: 'bm_diamonds', name: 'ألماس خام غير مصقول', icon: '💎', base: 6500, price: 6500, owned: 0 },
+                { id: 'bm_relic', name: 'قطع أثرية نادرة', icon: '🏺', base: 14000, price: 14000, owned: 0 },
+                { id: 'bm_exploit', name: 'شيفرة برمجية احتكارية', icon: '💾', base: 32000, price: 32000, owned: 0 }
             ],
             factories: [
                 { id: 'food_line', name: 'معمل التعبئة الغذائية', icon: '🏭', reqId: 'wheat', reqQty: 2, outId: 'food', outQty: 1, cost: 800, built: false },
@@ -322,6 +389,13 @@
                 { id: 'jet', name: 'طائرة رجال أعمال خاصة', icon: '🛩️', cost: 80000, prestige: 80, owned: false },
                 { id: 'yacht', name: 'يخت ميجا فاره', icon: '🛥️', cost: 250000, prestige: 250, owned: false }
             ],
+            achievements: [
+                { id: 'ach_10k', title: 'أول 10,000 $ ثروة', icon: '💵', reward: 1500, done: false, check: (s, w) => w >= 10000 },
+                { id: 'ach_100k', title: 'نادي الـ 100 ألف $', icon: '🏦', reward: 10000, done: false, check: (s, w) => w >= 100000 },
+                { id: 'ach_gold', title: 'ملك الذهب (امتلاك 5 سبائك)', icon: '🪙', reward: 3000, done: false, check: (s) => (s.goods.find(g=>g.id==='gold').owned >= 5) },
+                { id: 'ach_prestige', title: 'وجاهة اجتماعية (+50)', icon: '👑', reward: 5000, done: false, check: (s) => s.prestige >= 50 },
+                { id: 'ach_million', title: 'مليونير حقيقي (1,000,000 $)', icon: '🏆', reward: 50000, done: false, check: (s, w) => w >= 1000000 }
+            ],
             rivals: [
                 { name: 'إيلون ستارك', title: 'عملاق التكنولوجيا', worth: 450000, icon: '👨‍💼' },
                 { name: 'فيكتوريا كراون', title: 'إمبراطورة الشحن والنفط', worth: 180000, icon: '👩‍💼' },
@@ -332,19 +406,18 @@
 
         let state = JSON.parse(JSON.stringify(defaultState));
 
-        // تحميل الحفظ التلقائي
         function loadGame() {
             try {
-                const s = localStorage.getItem('biz_master_save');
+                const s = localStorage.getItem('biz_master_save_v2');
                 if (s) state = Object.assign(state, JSON.parse(s));
             } catch(e) {}
         }
         function saveGame() {
-            try { localStorage.setItem('biz_master_save', JSON.stringify(state)); } catch(e) {}
+            try { localStorage.setItem('biz_master_save_v2', JSON.stringify(state)); } catch(e) {}
         }
         function resetGame() {
-            if (confirm("هل أنت متأكد من رغبتك في تصفير كل تقدمك والبدء من جديد؟")) {
-                localStorage.removeItem('biz_master_save');
+            if (confirm("هل تريد تصفير اللعبة والبدء من جديد برأس مال جديد؟")) {
+                localStorage.removeItem('biz_master_save_v2');
                 state = JSON.parse(JSON.stringify(defaultState));
                 recalcMarket();
                 renderAll();
@@ -352,32 +425,68 @@
             }
         }
 
-        // الحسابات العامة
         function getStorageUsed() {
-            return state.goods.reduce((acc, g) => acc + g.owned, 0);
+            const normal = state.goods.reduce((acc, g) => acc + g.owned, 0);
+            const bm = state.blackMarketGoods.reduce((acc, g) => acc + g.owned, 0);
+            return normal + bm;
         }
         function getPassiveIncome() {
             return state.businesses.reduce((acc, b) => acc + (b.owned * b.income), 0);
         }
         function getNetWorth() {
             const gVal = state.goods.reduce((acc, g) => acc + (g.owned * g.price), 0);
+            const bmVal = state.blackMarketGoods.reduce((acc, g) => acc + (g.owned * g.price), 0);
             const sVal = state.stocks.reduce((acc, s) => acc + (s.owned * s.price), 0);
             const bVal = state.businesses.reduce((acc, b) => acc + (b.owned * b.cost), 0);
             const lVal = state.luxuries.filter(l => l.owned).reduce((acc, l) => acc + l.cost, 0);
-            return (state.cash + gVal + sVal + bVal + lVal) - state.debt;
+            return (state.cash + gVal + bmVal + sVal + bVal + lVal) - state.debt;
         }
 
         function getRankName(w) {
             if (w < 8000) return "تاجر ناشئ 📦";
-            if (w < 35000) return "مورد إقليمي معتمد 🚛";
+            if (w < 35000) return "مورد معتمد 🚛";
             if (w < 150000) return "مستثمر رؤوس أموال 💼";
             if (w < 600000) return "مليونير صاعد 💎";
             return "إمبراطور التجارة العالمية 👑";
         }
 
-        // تحديث وعرض كل الواجهات
+        function checkAchievements(w) {
+            state.achievements.forEach(a => {
+                if (!a.done && a.check(state, w)) {
+                    a.done = true;
+                    state.cash += a.reward;
+                    beep(800, 'triangle', 0.3);
+                    confetti({ particleCount: 60, spread: 60, origin: { y: 0.7 } });
+                    alert(`🏆 إنجاز مكتمل: [${a.title}]! استلمت مكافأة ${a.reward.toLocaleString()}$!`);
+                }
+            });
+        }
+
+        // رسم بياني مصغر بالـ SVG
+        function renderSparkline(history) {
+            if (!history || history.length < 2) return '';
+            const min = Math.min(...history);
+            const max = Math.max(...history);
+            const range = (max - min) || 1;
+            const w = 48, h = 16;
+            const points = history.map((val, i) => {
+                const x = (i / (history.length - 1)) * w;
+                const y = h - ((val - min) / range) * (h - 4) - 2;
+                return `${x.toFixed(1)},${y.toFixed(1)}`;
+            }).join(' ');
+            const isUp = history[history.length - 1] >= history[0];
+            const strokeColor = isUp ? '#10b981' : '#f43f5e';
+            return `
+                <svg width="${w}" height="${h}" class="inline-block overflow-visible ml-1">
+                    <polyline fill="none" stroke="${strokeColor}" stroke-width="2" points="${points}" />
+                </svg>
+            `;
+        }
+
         function renderAll() {
             const worth = getNetWorth();
+            checkAchievements(worth);
+
             document.getElementById('cash-txt').textContent = state.cash.toLocaleString() + ' $';
             document.getElementById('worth-txt').textContent = worth.toLocaleString() + ' $';
             document.getElementById('day-txt').textContent = state.day;
@@ -398,16 +507,27 @@
             document.getElementById('upg-cap-txt').textContent = `+100 مساحة (${state.storageUpgCost.toLocaleString()}$)`;
             document.getElementById('bank-debt-label').textContent = state.debt.toLocaleString() + ' $';
 
+            // حالة السوق الأسود
+            const bmPill = document.getElementById('bm-status-pill');
+            if (state.blackMarketOpen) {
+                bmPill.className = "text-[9px] px-2 py-0.5 rounded-md font-bold shrink-0 bg-rose-500 text-white animate-pulse";
+                bmPill.textContent = "السوق السري: مفتوح 🔥";
+            } else {
+                bmPill.className = "text-[9px] px-2 py-0.5 rounded-md font-bold shrink-0 bg-slate-800 text-slate-500 border border-slate-700";
+                bmPill.textContent = "السوق السري: مغلق";
+            }
+
             renderGoods();
+            renderBlackMarket();
             renderFactories();
             renderContracts();
             renderStocks();
+            renderAchievements();
             renderEmpire();
             renderLeaderboard(worth);
             saveGame();
         }
 
-        // عرض السلع
         function renderGoods() {
             const list = document.getElementById('goods-list');
             list.innerHTML = '';
@@ -423,11 +543,14 @@
                             <span class="text-2xl">${g.icon}</span>
                             <div>
                                 <h4 class="font-bold text-xs text-white">${g.name}</h4>
-                                <span class="text-[10px] text-slate-400">في المستودع: <b class="text-emerald-400">${g.owned}</b></span>
+                                <span class="text-[10px] text-slate-400">بالمخزن: <b class="text-emerald-400">${g.owned}</b></span>
                             </div>
                         </div>
                         <div class="text-left">
-                            <span class="text-sm font-black text-white block">${g.price.toLocaleString()} $</span>
+                            <div class="flex items-center justify-end gap-1">
+                                ${renderSparkline(g.history)}
+                                <span class="text-sm font-black text-white">${g.price.toLocaleString()} $</span>
+                            </div>
                             <span class="text-[9px] font-bold ${isUp ? 'text-emerald-400' : 'text-rose-400'}">${isUp ? '▲' : '▼'} ${pct}%</span>
                         </div>
                     </div>
@@ -437,6 +560,124 @@
                 `;
                 list.appendChild(card);
             });
+        }
+
+        function renderBlackMarket() {
+            const list = document.getElementById('blackmarket-list');
+            list.innerHTML = '';
+            if (!state.blackMarketOpen) {
+                list.innerHTML = `
+                    <div class="col-span-full py-8 text-center text-slate-500 text-xs font-bold border border-dashed border-slate-800 rounded-2xl">
+                        🔒 السوق السري مغلق حالياً.. انتظر إشعار وصول المهربين في الأيام القادمة.
+                    </div>
+                `;
+                return;
+            }
+
+            state.blackMarketGoods.forEach(g => {
+                const card = document.createElement('div');
+                card.className = "bg-slate-900/90 border border-rose-900/50 rounded-2xl p-3 flex flex-col justify-between";
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="text-3xl">${g.icon}</span>
+                            <div>
+                                <h4 class="font-bold text-xs text-rose-300">${g.name}</h4>
+                                <span class="text-[10px] text-slate-400">بحوزتك: <b class="text-amber-400">${g.owned}</b></span>
+                            </div>
+                        </div>
+                        <div class="text-left">
+                            <span class="text-sm font-black text-white block">${g.price.toLocaleString()} $</span>
+                            <span class="text-[9px] text-rose-400 font-bold">بضاعة نادرة</span>
+                        </div>
+                    </div>
+                    <button onclick="openTrade('black', '${g.id}')" class="mt-2.5 w-full bg-rose-900/40 hover:bg-rose-900/60 active:scale-95 text-rose-200 text-xs font-bold py-1.5 rounded-xl border border-rose-800/60 flex items-center justify-center gap-1.5 transition-all">
+                        <i class="fa-solid fa-shield-halved text-[10px]"></i> تداول سري
+                    </button>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        function renderAchievements() {
+            const list = document.getElementById('achievements-list');
+            list.innerHTML = '';
+            state.achievements.forEach(a => {
+                const card = document.createElement('div');
+                card.className = `p-3 rounded-2xl border flex items-center justify-between ${a.done ? 'bg-amber-950/20 border-amber-500/50' : 'bg-slate-900 border-slate-800 opacity-60'}`;
+                card.innerHTML = `
+                    <div class="flex items-center gap-2.5">
+                        <span class="text-2xl">${a.icon}</span>
+                        <div>
+                            <h4 class="text-xs font-bold ${a.done ? 'text-amber-300' : 'text-slate-300'}">${a.title}</h4>
+                            <span class="text-[10px] text-slate-400">المكافأة: ${a.reward.toLocaleString()} $</span>
+                        </div>
+                    </div>
+                    ${a.done ? 
+                        `<span class="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg">مكتمل ✅</span>` :
+                        `<span class="text-[10px] text-slate-500 font-bold">قيد التقدم ⏳</span>`
+                    }
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        // عجلة الحظ (Lucky Spin)
+        function openSpinModal() {
+            const daysSince = state.day - state.lastSpinDay;
+            const btn = document.getElementById('spin-btn');
+            const txt = document.getElementById('spin-status-txt');
+
+            if (daysSince >= 3) {
+                btn.disabled = false;
+                btn.className = "w-full bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black py-2.5 rounded-xl text-xs active:scale-95 shadow-lg shadow-amber-500/20 cursor-pointer";
+                txt.textContent = "العجلة جاهزة للدوران المجاني!";
+            } else {
+                btn.disabled = true;
+                btn.className = "w-full bg-slate-800 text-slate-500 font-bold py-2.5 rounded-xl text-xs cursor-not-allowed";
+                txt.textContent = `متبقٍ ${3 - daysSince} أيام حتى تفتح العجلة مجدداً!`;
+            }
+
+            document.getElementById('spin-modal').classList.remove('hidden');
+        }
+
+        function closeSpinModal() {
+            document.getElementById('spin-modal').classList.add('hidden');
+        }
+
+        let isSpinning = false;
+        function spinWheel() {
+            if (isSpinning) return;
+            isSpinning = true;
+            state.lastSpinDay = state.day;
+
+            const wheel = document.getElementById('wheel-disc');
+            const randomRounds = Math.floor(Math.random() * 5) + 5;
+            const randomDegrees = Math.floor(Math.random() * 360);
+            const totalDegrees = randomRounds * 360 + randomDegrees;
+
+            wheel.style.transform = `rotate(${totalDegrees}deg)`;
+            beep(440, 'triangle', 0.5);
+
+            setTimeout(() => {
+                isSpinning = false;
+                const prizes = [
+                    { name: 'جائزة كبرى: 10,000 $ نقداً!', act: () => { state.cash += 10000; } },
+                    { name: 'هدية: سبيكة ذهبية في المستودع!', act: () => { state.goods.find(g=>g.id==='gold').owned += 1; } },
+                    { name: 'جائزة وجاهة: +15 نقطة سمعة!', act: () => { state.prestige += 15; } },
+                    { name: 'منحة بنكية: سداد 2,000$ من ديونك!', act: () => { state.debt = Math.max(0, state.debt - 2000); } },
+                    { name: 'حظ بسيط: 2,500 $ نقداً!', act: () => { state.cash += 2500; } }
+                ];
+                const win = prizes[Math.floor(Math.random() * prizes.length)];
+                win.act();
+
+                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+                beep(880, 'sine', 0.3);
+                alert(`🎉 مبروك! نتيجة عجلة الحظ:\n${win.name}`);
+
+                closeSpinModal();
+                renderAll();
+            }, 3000);
         }
 
         // عرض المصانع
@@ -468,7 +709,7 @@
                                 بناء وتدشين الخط (${fac.cost.toLocaleString()} $)
                             </button>
                         ` : `
-                            <span class="text-[10px] text-emerald-400 font-bold"><i class="fa-solid fa-circle-check"></i> الخط جاهز للعمل</span>
+                            <span class="text-[10px] text-emerald-400 font-bold"><i class="fa-solid fa-circle-check"></i> جاهز</span>
                             <button onclick="runProduction('${fac.id}')" class="${canProduce ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-slate-800 text-slate-500 cursor-not-allowed'} px-3 py-1.5 rounded-xl text-xs font-bold text-white active:scale-95">
                                 تصنيع دفعة ⚙️
                             </button>
@@ -507,7 +748,7 @@
             renderAll();
         }
 
-        // عرض العقود والمناقصات
+        // عرض العقود
         function renderContracts() {
             const list = document.getElementById('contracts-list');
             list.innerHTML = '';
@@ -548,7 +789,8 @@
             c.reward = Math.round(c.reward * 1.35);
 
             beep(880, 'triangle', 0.25);
-            alert(`🎉 تم تسليم العقد بنجاح! حصدت ${c.reward.toLocaleString()}$ وزادت مكانتك في السوق.`);
+            confetti({ particleCount: 50, spread: 50, origin: { y: 0.8 } });
+            alert(`🎉 تم تسليم العقد بنجاح! حصدت ${c.reward.toLocaleString()}$ وزادت مكانتك.`);
             renderAll();
         }
 
@@ -577,7 +819,7 @@
                         </div>
                     </div>
                     <button onclick="openTrade('stock', '${s.id}')" class="mt-2.5 w-full bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 text-xs font-bold py-1.5 rounded-xl border border-slate-700 flex items-center justify-center gap-1.5 transition-all">
-                        <i class="fa-solid fa-arrow-right-arrow-left text-sky-400 text-[10px]"></i> بيع / شراء أسهم
+                        <i class="fa-solid fa-arrow-right-arrow-left text-sky-400 text-[10px]"></i> بيع / شراء
                     </button>
                 `;
                 list.appendChild(card);
@@ -649,7 +891,6 @@
             });
         }
 
-        // عرض قائمة فوربس
         function renderLeaderboard(playerWorth) {
             const list = document.getElementById('leaderboard-list');
             list.innerHTML = '';
@@ -721,7 +962,7 @@
 
         function takeLoan() {
             const loanLimit = 15000 + (state.prestige * 200);
-            if (state.debt + 5000 > loanLimit) return alert(`وصلت للحد الأقصى للاقتراض المتاح لك من البنك (${loanLimit.toLocaleString()}$)`);
+            if (state.debt + 5000 > loanLimit) return alert(`وصلت للحد الأقصى المتاح لك (${loanLimit.toLocaleString()}$)`);
             state.cash += 5000;
             state.debt += 5500;
             beep(400, 'sine', 0.15);
@@ -730,17 +971,19 @@
 
         function payLoan() {
             if (state.debt <= 0) return alert("ليس عليك أي ديون بنكية مستحقة.");
-            if (state.cash < state.debt) return alert("السيولة غير كافية لسداد كامل أصل وفائدة الدين!");
+            if (state.cash < state.debt) return alert("السيولة غير كافية لسداد كامل الدين!");
             state.cash -= state.debt;
             state.debt = 0;
             beep(600, 'triangle', 0.2);
             renderAll();
         }
 
-        // نافذة الشراء والبيع
         function openTrade(cat, id) {
             state.selectedTrade = { cat, id };
-            const item = cat === 'good' ? state.goods.find(g => g.id === id) : state.stocks.find(s => s.id === id);
+            let item;
+            if (cat === 'good') item = state.goods.find(g => g.id === id);
+            else if (cat === 'stock') item = state.stocks.find(s => s.id === id);
+            else if (cat === 'black') item = state.blackMarketGoods.find(b => b.id === id);
 
             document.getElementById('mdl-icon').textContent = item.icon;
             document.getElementById('mdl-name').textContent = item.name;
@@ -748,7 +991,7 @@
             document.getElementById('mdl-owned').textContent = item.owned;
 
             const spaceBox = document.getElementById('mdl-space-box');
-            if (cat === 'good') {
+            if (cat === 'good' || cat === 'black') {
                 spaceBox.classList.remove('hidden');
                 document.getElementById('mdl-space').textContent = state.storageCap - getStorageUsed();
             } else {
@@ -774,10 +1017,14 @@
         function setMaxQty() {
             if (!state.selectedTrade) return;
             const { cat, id } = state.selectedTrade;
-            const item = cat === 'good' ? state.goods.find(g => g.id === id) : state.stocks.find(s => s.id === id);
+            let item;
+            if (cat === 'good') item = state.goods.find(g => g.id === id);
+            else if (cat === 'stock') item = state.stocks.find(s => s.id === id);
+            else if (cat === 'black') item = state.blackMarketGoods.find(b => b.id === id);
+
             const maxBuyCash = Math.floor(state.cash / item.price);
 
-            if (cat === 'good') {
+            if (cat === 'good' || cat === 'black') {
                 const space = state.storageCap - getStorageUsed();
                 document.getElementById('trade-qty').value = Math.max(1, Math.min(space, maxBuyCash));
             } else {
@@ -791,7 +1038,11 @@
         function calcTradeTotal() {
             if (!state.selectedTrade) return;
             const { cat, id } = state.selectedTrade;
-            const item = cat === 'good' ? state.goods.find(g => g.id === id) : state.stocks.find(s => s.id === id);
+            let item;
+            if (cat === 'good') item = state.goods.find(g => g.id === id);
+            else if (cat === 'stock') item = state.stocks.find(s => s.id === id);
+            else if (cat === 'black') item = state.blackMarketGoods.find(b => b.id === id);
+
             const q = Math.max(1, parseInt(document.getElementById('trade-qty').value) || 1);
             document.getElementById('mdl-total').textContent = (q * item.price).toLocaleString() + ' $';
         }
@@ -799,18 +1050,22 @@
         function execTrade(action) {
             if (!state.selectedTrade) return;
             const { cat, id } = state.selectedTrade;
-            const item = cat === 'good' ? state.goods.find(g => g.id === id) : state.stocks.find(s => s.id === id);
+            let item;
+            if (cat === 'good') item = state.goods.find(g => g.id === id);
+            else if (cat === 'stock') item = state.stocks.find(s => s.id === id);
+            else if (cat === 'black') item = state.blackMarketGoods.find(b => b.id === id);
+
             const q = Math.max(1, parseInt(document.getElementById('trade-qty').value) || 1);
             const total = q * item.price;
 
             if (action === 'buy') {
-                if (cat === 'good' && (getStorageUsed() + q > state.storageCap)) {
+                if ((cat === 'good' || cat === 'black') && (getStorageUsed() + q > state.storageCap)) {
                     beep(200, 'sawtooth', 0.2);
-                    return alert("المستودع ممتلئ! لا توجد مساحة كافية لهذه الكمية.");
+                    return alert("المستودع ممتلئ! لا توجد مساحة كافية.");
                 }
                 if (total > state.cash) {
                     beep(200, 'sawtooth', 0.2);
-                    return alert("السيولة النقدية غير كافية لإتمام الصفقة!");
+                    return alert("السيولة النقدية غير كافية!");
                 }
                 state.cash -= total;
                 item.owned += q;
@@ -818,7 +1073,7 @@
             } else {
                 if (q > item.owned) {
                     beep(200, 'sawtooth', 0.2);
-                    return alert("لا تملك هذه الكمية في حوزتك لبيعها!");
+                    return alert("لا تملك هذه الكمية لبيعها!");
                 }
                 state.cash += total;
                 item.owned -= q;
@@ -829,7 +1084,6 @@
             renderAll();
         }
 
-        // ضبط الأسعار
         function recalcMarket(eventFactor = 1, eventTarget = null) {
             const city = state.cities[state.cityIdx];
 
@@ -840,6 +1094,17 @@
                 let newP = Math.round(g.base * cityMul * rand);
                 if (eventTarget === g.id) newP = Math.round(newP * eventFactor);
                 g.price = Math.max(5, newP);
+
+                // حفظ آخر 5 أسعار للرسم البياني
+                if (!g.history) g.history = [g.base, g.price];
+                g.history.push(g.price);
+                if (g.history.length > 5) g.history.shift();
+            });
+
+            // أسعار السوق السوداء
+            state.blackMarketGoods.forEach(b => {
+                const fluc = 1 + ((Math.random() * 0.4) - 0.2);
+                b.price = Math.round(b.base * fluc);
             });
 
             state.stocks.forEach(s => {
@@ -849,7 +1114,6 @@
             });
         }
 
-        // إنهاء اليوم والمحاسبة
         function advanceDay() {
             state.day += 1;
 
@@ -875,19 +1139,22 @@
                 }
             });
 
+            // فتح أو إغلاق السوق الأسود (احتمال 30% لظهوره)
+            state.blackMarketOpen = Math.random() < 0.30;
+
             const newsDB = [
-                { text: "أزمة عالمية في الشحن البحري ترفع أسعار الأغذية المعلبة والقمح!", target: "wheat", factor: 1.6 },
-                { text: "اكتشافات بترولية ضخمة تؤدي لهبوط مفاجئ في أسعار براميل النفط الخام.", target: "oil", factor: 0.65 },
-                { text: "طلب جنوني على الهواتف والأجهزة الذكية في الأسواق العالمية!", target: "phone", factor: 1.5 },
-                { text: "هبوط حاد في سوق العملات المشفرة نتيجة تشديد اللوائح المصرفية.", target: null, factor: 1.0 },
-                { text: "انتعاش اقتصادي واستقرار في معدلات التضخم بالأسواق المركزية.", target: null, factor: 1.0 }
+                { text: "أزمة عالمية في الشحن البحري ترفع أسعار الأغذية والقمح!", target: "wheat", factor: 1.6 },
+                { text: "اكتشافات بترولية تؤدي لهبوط مفاجئ في أسعار النفط الخام.", target: "oil", factor: 0.65 },
+                { text: "طلب جنوني على الهواتف والأجهزة الذكية عالمياً!", target: "phone", factor: 1.5 },
+                { text: "هبوط حاد في سوق العملات المشفرة نتيجة تشديد اللوائح.", target: null, factor: 1.0 },
+                { text: "انتعاش اقتصادي واستقرار في معدلات التضخم.", target: null, factor: 1.0 }
             ];
             const ev = newsDB[Math.floor(Math.random() * newsDB.length)];
             document.getElementById('news-bar').textContent = ev.text;
 
             recalcMarket(ev.factor, ev.target);
 
-            // حدث طارئ نادر جداً (نسبة 4% فقط - مرة كل 25 إلى 30 يوماً تقريباً)
+            // حدث طارئ نادر جداً (4%)
             if (Math.random() < 0.04) {
                 triggerRandomDilemma();
             } else {
@@ -897,7 +1164,6 @@
             renderAll();
         }
 
-        // نظام الأحداث النادرة والمتنوعة
         function triggerRandomDilemma() {
             const dilemmas = [
                 {
@@ -910,15 +1176,15 @@
                             else { state.debt += 1000; alert('تمت إضافتها لديونك البنكية.'); }
                         }},
                         { text: 'الاعتماد على مكانتك التجارية', cb: () => {
-                            if (state.prestige >= 30) { alert('مكانتك التجارية العالية حسمت الأمر دون أي تكاليف!'); }
-                            else { state.cash = Math.max(0, state.cash - 1500); alert('فشلت الوساطة وتم تغريمك 1,500$!'); }
+                            if (state.prestige >= 30) { alert('مكانتك التجارية العالية حسمت الأمر دون تكاليف!'); }
+                            else { state.cash = Math.max(0, state.cash - 1500); alert('فشلت الوساطة وغرمت 1,500$!'); }
                         }}
                     ]
                 },
                 {
                     icon: '💡',
-                    title: 'صفقة حاوية مهجورة في الميناء',
-                    desc: 'طرح الميناء حاوية تجارية لم يستلمها صاحبها بسعر مزاد رمزي (1,500$).',
+                    title: 'صفقة حاوية مهجورة بالميناء',
+                    desc: 'طرح الميناء حاوية تجارية مهجورة لمزاد سريع بسعر رمزي (1,500$).',
                     actions: [
                         { text: 'المزايدة وشراء الحاوية (1,500$)', cb: () => {
                             if (state.cash < 1500) return alert('لا تملك سيولة كافية للمزاد.');
@@ -927,38 +1193,10 @@
                                 state.goods.find(g => g.id === 'gold').owned += 2;
                                 alert('ضربة حظ رائعة! عثرت داخل الحاوية على سبيكتي ذهب!');
                             } else {
-                                alert('كانت الحاوية تحتوي على بضائع تالفة بالكامل.');
+                                alert('للأسف كانت الحاوية تحتوي على بضائع تالفة.');
                             }
                         }},
                         { text: 'صرف النظر وتجنب المجازفة', cb: () => { alert('تجنبت المخاطرة بأموالك.'); }}
-                    ]
-                },
-                {
-                    icon: '🤝',
-                    title: 'فرصة رعاية مؤتمر أعمال دولي',
-                    desc: 'عُرض عليك رعاية منتدى استثماري لتعزيز علامتك التجارية مقابل 2,000$.',
-                    actions: [
-                        { text: 'الموافقة على الرعاية (2,000$)', cb: () => {
-                            if (state.cash < 2000) return alert('لا تملك المبلغ المطلوب.');
-                            state.cash -= 2000;
-                            state.prestige += 15;
-                            alert('ارتفعت سمعتك ووجاهتك في السوق بمقدار +15 نقطة!');
-                        }},
-                        { text: 'رفض العرض حالياً', cb: () => { alert('تم توفير السيولة لصفقات البضائع.'); }}
-                    ]
-                },
-                {
-                    icon: '⚡',
-                    title: 'عرض بيع مستودع مستعجل',
-                    desc: 'تاجر يمر بضائقة مالية يعرض عليك شراء مساحته التخزينية بنصف السعر.',
-                    actions: [
-                        { text: 'شراء التوسعة فوراً (800$)', cb: () => {
-                            if (state.cash < 800) return alert('السيولة غير كافية.');
-                            state.cash -= 800;
-                            state.storageCap += 50;
-                            alert('مبروك! زادت سعة مستودعك بـ 50 وحدة بسعر مغرٍ.');
-                        }},
-                        { text: 'تجاهل العرض', cb: () => {} }
                     ]
                 }
             ];
@@ -986,20 +1224,18 @@
             beep(350, 'sawtooth', 0.25);
         }
 
-        // التبديل بين التبويبات
         function tab(name) {
             document.querySelectorAll('.tcontent').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('.tbtn').forEach(btn => {
-                btn.className = "tbtn flex-1 min-w-[65px] py-2 rounded-xl text-center text-slate-400";
+                btn.className = "tbtn flex-1 min-w-[60px] py-2 rounded-xl text-center text-slate-400";
             });
 
             document.getElementById(`tc-${name}`).classList.remove('hidden');
             const activeBtn = document.getElementById(`tbtn-${name}`);
-            activeBtn.className = "tbtn flex-1 min-w-[65px] py-2 rounded-xl text-center bg-emerald-600 text-white";
+            activeBtn.className = "tbtn flex-1 min-w-[60px] py-2 rounded-xl text-center bg-emerald-600 text-white";
             beep(420, 'sine', 0.05);
         }
 
-        // بدء التشغيل
         loadGame();
         recalcMarket();
         renderAll();
